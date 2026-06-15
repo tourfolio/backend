@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "관광지 정보")
-public class TouristSpot {
+@Schema(description = "관광지 상세 조회 응답")
+public class TouristSpotDetailResponse {
     
     @Schema(description = "관광지 ID", example = "1")
     private Long id;

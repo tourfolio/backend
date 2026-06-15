@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "관광지 정보")
-public class TouristSpot {
+@Schema(description = "관광지 목록 조회 응답")
+public class TouristSpotListResponse {
     
     @Schema(description = "관광지 ID", example = "1")
     private Long id;
@@ -27,9 +27,6 @@ public class TouristSpot {
     
     @Schema(description = "주소", example = "서울 종로구 사직로 161")
     private String address;
-    
-    @Schema(description = "설명", example = "조선시대 대표 궁궐")
-    private String description;
     
     @Schema(description = "썸네일 URL", example = "https://example.com/gyeongbokgung.jpg")
     private String thumbnailUrl;
