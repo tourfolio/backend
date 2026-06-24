@@ -8,6 +8,7 @@ import com.tourfolio.app.service.TouristSpotService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -33,7 +34,11 @@ public class TouristSpotController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "조회 성공", 
             content = @Content(mediaType = "application/json", 
-                schema = @Schema(implementation = TouristSpotListResponse.class)))
+                schema = @Schema(implementation = TouristSpotListResponse.class),
+                examples = @ExampleObject(
+                    name = "관광지 목록 예시",
+                    value = "[{\"id\":1,\"name\":\"경복궁\",\"latitude\":37.579617,\"longitude\":126.977041,\"address\":\"서울 종로구 사직로 161\",\"description\":\"조선시대 대표 궁궐로, 한국의 전통 건축미를 감상할 수 있는 역사적인 장소입니다.\",\"thumbnailUrl\":\"https://example.com/gyeongbokgung.jpg\",\"category\":\"역사문화\"}]"
+                )))
     })
     public ResponseEntity<List<TouristSpotListResponse>> getAllTouristSpots() {
         log.info("GET /api/tourist-spots - Fetching all tourist spots");
@@ -46,7 +51,11 @@ public class TouristSpotController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "조회 성공", 
             content = @Content(mediaType = "application/json", 
-                schema = @Schema(implementation = TouristSpotDetailResponse.class))),
+                schema = @Schema(implementation = TouristSpotDetailResponse.class),
+                examples = @ExampleObject(
+                    name = "관광지 상세 예시",
+                    value = "{\"id\":1,\"name\":\"경복궁\",\"latitude\":37.579617,\"longitude\":126.977041,\"address\":\"서울 종로구 사직로 161\",\"description\":\"조선시대 대표 궁궐로, 한국의 전통 건축미를 감상할 수 있는 역사적인 장소입니다.\",\"thumbnailUrl\":\"https://example.com/gyeongbokgung.jpg\",\"category\":\"역사문화\"}"
+                ))),
         @ApiResponse(responseCode = "404", description = "관광지를 찾을 수 없음")
     })
     public ResponseEntity<TouristSpotDetailResponse> getTouristSpotById(
@@ -62,7 +71,11 @@ public class TouristSpotController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "조회 성공", 
             content = @Content(mediaType = "application/json", 
-                schema = @Schema(implementation = TouristSpotMapResponse.class)))
+                schema = @Schema(implementation = TouristSpotMapResponse.class),
+                examples = @ExampleObject(
+                    name = "지도 마커 예시",
+                    value = "[{\"id\":1,\"name\":\"경복궁\",\"latitude\":37.579617,\"longitude\":126.977041}]"
+                )))
     })
     public ResponseEntity<List<TouristSpotMapResponse>> getTouristSpotsForMap() {
         log.info("GET /api/tourist-spots/map - Fetching tourist spots for map");
@@ -75,7 +88,11 @@ public class TouristSpotController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "검색 성공", 
             content = @Content(mediaType = "application/json", 
-                schema = @Schema(implementation = TouristSpotSearchResponse.class)))
+                schema = @Schema(implementation = TouristSpotSearchResponse.class),
+                examples = @ExampleObject(
+                    name = "검색 결과 예시",
+                    value = "[{\"id\":1,\"name\":\"경복궁\"},{\"id\":2,\"name\":\"창덕궁\"}]"
+                )))
     })
     public ResponseEntity<List<TouristSpotSearchResponse>> searchTouristSpots(
             @Parameter(description = "검색 키워드", required = true, example = "궁")

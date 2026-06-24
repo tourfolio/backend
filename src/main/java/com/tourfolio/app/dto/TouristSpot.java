@@ -28,9 +28,12 @@ public class TouristSpot {
     @Schema(description = "주소", example = "서울 종로구 사직로 161")
     private String address;
     
-    @Schema(description = "설명", example = "조선시대 대표 궁궐")
+    @Schema(description = "설명", example = "조선시대 대표 궁궐로, 한국의 전통 건축미를 감상할 수 있는 역사적인 장소입니다.")
     private String description;
     
     @Schema(description = "썸네일 URL", example = "https://example.com/gyeongbokgung.jpg")
     private String thumbnailUrl;
+    
+    @Schema(description = "카테고리", example = "역사문화")
+    private String category;
 }
