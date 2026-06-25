@@ -5,15 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TradeRequest {
-    private Long memberId;
-    private Long spotId;
-    private String type; // BUY 또는 SELL
-    private BigDecimal quantity;
+public class ErrorResponse {
+    private String errorCode;
+    private String errorMessage;
+    private LocalDateTime timestamp;
 }

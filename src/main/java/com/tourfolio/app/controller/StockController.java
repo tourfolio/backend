@@ -2,6 +2,7 @@ package com.tourfolio.app.controller;
 
 import com.tourfolio.app.dto.StockResponse;
 import com.tourfolio.app.dto.TradeRequest;
+import com.tourfolio.app.dto.MemberAssetResponse;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.service.StockService;
 import lombok.RequiredArgsConstructor;
@@ -22,38 +23,25 @@ public class StockController {
 
     @GetMapping
     public ResponseEntity<List<StockResponse>> getAllStocks() {
-        log.info("GET /api/v1/stocks - Fetching all stocks");
-        List<StockResponse> stocks = stockService.getAllStocks();
-        return ResponseEntity.ok(stocks);
-    }
-
-    @GetMapping("/test-api")
-    public ResponseEntity<Map<String, Object>> testOpenApiMetrics(@RequestParam Long spotId) {
-        log.info("GET /api/v1/stocks/test-api - Testing Open API metrics for spotId: {}", spotId);
-        try {
-            Map<String, Object> metrics = stockService.testOpenApiMetrics(spotId);
-            return ResponseEntity.ok(metrics);
-        } catch (IllegalArgumentException e) {
-            log.error("Test API metrics failed: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("Unexpected error during test API metrics: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
-        }
+        log.info("GET /api/v1/stocks - 전광판 시세조회판 트리거 호출");
+        return ResponseEntity.ok(stockService.getAllStocks());
     }
 
     @PostMapping("/trade")
     public ResponseEntity<Transaction> executeTrade(@RequestBody TradeRequest request) {
-        log.info("POST /api/v1/stocks/trade - Executing trade: {}", request);
-        try {
-            Transaction transaction = stockService.executeTrade(request);
-            return ResponseEntity.ok(transaction);
-        } catch (IllegalArgumentException e) {
-            log.error("Trade execution failed: {}", e.getMessage());
-            return ResponseEntity.badRequest().build();
-        } catch (Exception e) {
-            log.error("Unexpected error during trade execution: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
-        }
+        log.info("POST /api/v1/stocks/trade - 가상 체결 시스템 오더 수신: {}", request);
+        Transaction tx = stockService.executeTrade(request);
+        return ResponseEntity.ok(tx);
+    }
+
+    @GetMapping("/assets")
+    public ResponseEntity<MemberAssetResponse> getMemberAssets(@RequestParam Long memberId) {
+        log.info("GET /api/v1/stocks/assets - 유저 포트폴리오 자산 스크리너 조회 ID: {}", memberId);
+        return ResponseEntity.ok(stockService.getMemberAssets(memberId));
+    }
+
+    @GetMapping("/test-api")
+    public ResponseEntity<Map<String, Object>> testOpenApiMetrics(@RequestParam Long spotId) {
+        return ResponseEntity.ok(stockService.testOpenApiMetrics(spotId));
     }
 }

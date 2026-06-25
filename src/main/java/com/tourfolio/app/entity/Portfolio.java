@@ -10,41 +10,29 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "spots")
+@Table(name = "portfolios")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Spot {
+public class Portfolio {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 100)
-    private String name;
-
-    @Column(nullable = false, length = 20)
-    private String areaCode;
-
-    @Column(nullable = false, length = 50)
-    private String contentId;
+    @Column(nullable = false)
+    private Long memberId;
 
     @Column(nullable = false)
-    private Integer tier;
+    private Long spotId;
 
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal currentPrice;
+    private BigDecimal quantity;
 
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal prevPrice;
-
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal tourismDataWeight;
+    private BigDecimal averagePurchasePrice;
 
     @Column(nullable = false)
-    private LocalDateTime lastUpdated;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

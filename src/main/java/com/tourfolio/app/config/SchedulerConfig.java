@@ -17,12 +17,11 @@ public class SchedulerConfig {
 
     @Scheduled(fixedRate = 60000)
     public void updateDailyStockPrices() {
-        log.info("Starting scheduled daily stock price update...");
+        log.info("⏰ 1분 주기 배치: 실시간 관광 지표 및 체결 시세 정산 롤링 시작");
         try {
             stockService.updateDailyStockPrices();
-            log.info("Scheduled daily stock price update completed successfully.");
         } catch (Exception e) {
-            log.error("Error during scheduled stock price update: {}", e.getMessage(), e);
+            log.error("정산 배치 도중 예외가 차단되었습니다: {}", e.getMessage());
         }
     }
 }

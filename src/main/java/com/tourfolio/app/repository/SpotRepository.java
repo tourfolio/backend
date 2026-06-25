@@ -8,6 +8,5 @@ import java.util.List;
 
 @Repository
 public interface SpotRepository extends JpaRepository<Spot, Long> {
-
     List<Spot> findAllByOrderByTierAscNameAsc();
 }

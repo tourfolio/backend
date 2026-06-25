@@ -22,6 +22,9 @@ public class Transaction {
     private Long id;
 
     @Column(nullable = false)
+    private Long memberId;
+
+    @Column(nullable = false)
     private Long spotId;
 
     @Column(nullable = false, length = 10)
@@ -41,9 +44,4 @@ public class Transaction {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
-
-    public enum TransactionType {
-        BUY,
-        SELL
-    }
 }

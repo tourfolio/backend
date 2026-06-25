@@ -16,8 +16,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findBySpotIdAndCreatedAtAfterOrderByCreatedAtAsc(Long spotId, LocalDateTime dateTime);
 
     @Query("SELECT SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END) " +
-           "FROM Transaction t WHERE t.spotId = :spotId AND t.createdAt >= :startTime")
+            "FROM Transaction t WHERE t.spotId = :spotId AND t.createdAt >= :startTime")
     BigDecimal calculateNetBuyVolume(@Param("spotId") Long spotId, @Param("startTime") LocalDateTime startTime);
 
     List<Transaction> findBySpotIdOrderByCreatedAtDesc(Long spotId);
+    List<Transaction> findByMemberIdOrderByExecutedAtDesc(Long memberId);
 }
