@@ -24,10 +24,10 @@ public class SwaggerConfig {
         contact.setName("Tourfolio Team");
 
         Info info = new Info()
-                .title("투어폴리오(Tourfolio) 코어 백엔드 인프라 API")
+                .title("투어폴리오(Tourfolio) 백엔드 통합 API 명세서")
                 .version("1.0")
                 .contact(contact)
-                .description("2026 관광데이터 활용 공모전 - 팀해달별 가상 투자 및 관광지 탐색 통합 API 문서");
+                .description("2026 관광데이터 활용 공모전 - 팀해달별 탐색 및 가상 주식 투자 시스템 코어 인프라 명세서");
 
         return new OpenAPI()
                 .info(info)
@@ -35,20 +35,10 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public GroupedOpenApi touristSpotsApi() {
-        // 기존의 관광지 발견/탐색 API 그룹 레이어 유지
+    public GroupedOpenApi totalApi() {
         return GroupedOpenApi.builder()
-                .group("01. 관광지 발견 및 탐색 파트")
-                .pathsToMatch("/api/tourist-spots/**")
-                .build();
-    }
-
-    @Bean
-    public GroupedOpenApi stocksApi() {
-
-        return GroupedOpenApi.builder()
-                .group("02. 가상 투자 및 주식 정산 파트")
-                .pathsToMatch("/api/v1/stocks/**")
+                .group("01. 투어폴리오 백엔드 전체 API 마스터 풀")
+                .pathsToMatch("/api/**")
                 .build();
     }
 }
