@@ -27,7 +27,7 @@ public class SwaggerConfig {
                 .title("투어폴리오(Tourfolio) 코어 백엔드 인프라 API")
                 .version("1.0")
                 .contact(contact)
-                .description("2026 관광데이터 활용 공모전 - 팀해달별 가상 투자 및 탐색 API 문서");
+                .description("2026 관광데이터 활용 공모전 - 팀해달별 가상 투자 및 관광지 탐색 통합 API 문서");
 
         return new OpenAPI()
                 .info(info)
@@ -45,6 +45,7 @@ public class SwaggerConfig {
 
     @Bean
     public GroupedOpenApi stocksApi() {
+
         return GroupedOpenApi.builder()
                 .group("02. 가상 투자 및 주식 정산 파트")
                 .pathsToMatch("/api/v1/stocks/**")
