@@ -1,4 +1,3 @@
-// build.gradle
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.3.2'
@@ -10,7 +9,6 @@ version = '0.0.1-SNAPSHOT'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
 }
 
 configurations {
@@ -24,22 +22,30 @@ repositories {
 }
 
 dependencies {
+    // 핵심 웹 및 데이터베이스 의존성
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
+    // 인증 시스템용 핵심 시큐리티 모듈 (ClassNotFoundException 해결용)
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // Lombok 코덱
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // H2 내장형 인메모리 데이터베이스 (공모전 MVP 최적화 사양)
     runtimeOnly 'com.h2database:h2'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    
-    // Swagger (SpringDoc OpenAPI) for Spring Boot 3
+
+    // Swagger UI 명세서 전광판 라이브러리
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
+
+    // 테스트 모듈
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
 }

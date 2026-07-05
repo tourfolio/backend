@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: tourfolio
+  
+  datasource:
+    url: jdbc:h2:mem:tourfoliodb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+server:
+  port: 8000
+
+openapi:
+  service:
+    key: "9gW0r4tl6Md49Aj9LDANE3in2AU8Flq7n+BR/4GTTeYn5lukUig9L8VpQprv+3XNhbLJmtGkOYtydXle35DQG8A=="
+
+endpoint:
+  demand: https://apis.data.go.kr/B551011/AreaTarDemDsService
+  resdem: https://apis.data.go.kr/B551011/AreaTarResDemService
+  visitor: https://apis.data.go.kr/B551011/DataLabService
+  forecast: https://apis.data.go.kr/B551011/TatsCnctrRateService
+
+logging:
+  level:
+    root: INFO
+    com.tourfolio.app: DEBUG   # 디버깅을 위해 DEBUG 레벨로 상향
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE # SQL 파라미터 확인용
