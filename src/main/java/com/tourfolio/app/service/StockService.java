@@ -1,36 +1,34 @@
+// src/main/java/com/tourfolio/app/service/StockService.java
 package com.tourfolio.app.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tourfolio.app.dto.OpenApiDto;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.tourfolio.app.dto.StockResponse;
 import com.tourfolio.app.dto.TradeRequest;
 import com.tourfolio.app.dto.MemberAssetResponse;
+import com.tourfolio.app.dto.PriceHistoryResponse;
+import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.entity.Spot;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.entity.Member;
 import com.tourfolio.app.entity.Portfolio;
+import com.tourfolio.app.entity.PriceHistory;
 import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.repository.SpotRepository;
 import com.tourfolio.app.repository.TransactionRepository;
 import com.tourfolio.app.repository.MemberRepository;
 import com.tourfolio.app.repository.PortfolioRepository;
+import com.tourfolio.app.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.net.URI;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,33 +39,14 @@ public class StockService {
     private final TransactionRepository transactionRepository;
     private final MemberRepository memberRepository;
     private final PortfolioRepository portfolioRepository;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Random random = new Random();
-
-    @Value("${openapi.service.key:mock_key}")
-    private String openApiServiceKey;
-
-    @Value("${endpoint.demand:http://localhost:8080/mock}")
-    private String endpointDemand;
-
-    @Value("${endpoint.resdem:http://localhost:8080/mock}")
-    private String endpointResdem;
-
-    @Value("${endpoint.visitor:http://localhost:8080/mock}")
-    private String endpointVisitor;
-
-    @Value("${endpoint.forecast:http://localhost:8080/mock}")
-    private String endpointForecast;
+    private final PriceHistoryRepository priceHistoryRepository;
+    private final OpenApiService openApiService;
 
     @Transactional(rollbackFor = Exception.class)
     public Transaction executeTrade(TradeRequest request) {
-        // 1. 가상 투자 유저 엔티티 검증
         Member member = memberRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + request.getMemberId()));
 
-        // 2. 상장 관광 자산 종목 검증
         Spot spot = spotRepository.findById(request.getSpotId())
                 .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "상장되지 않은 관광 자산 종목입니다. ID: " + request.getSpotId()));
 
@@ -83,11 +62,9 @@ public class StockService {
         BigDecimal totalAmount = spot.getCurrentPrice().multiply(request.getQuantity()).setScale(2, RoundingMode.HALF_UP);
 
         if ("BUY".equals(type)) {
-            // 매수 원자성 검증 규칙: 지갑 잔액 비교
             if (member.getBalance().compareTo(totalAmount) < 0) {
                 throw new CustomException("INSUFFICIENT_BALANCE", "보유 포인트 잔액이 부족하여 가상 매수가 불가능합니다.");
             }
-            // 유저 포인트 차감 정산
             member.setBalance(member.getBalance().subtract(totalAmount));
             memberRepository.save(member);
 
@@ -112,7 +89,6 @@ public class StockService {
             portfolioRepository.save(portfolio);
 
         } else {
-            // 매도 원자성 검증 규칙: 보유 수량 확인 가드
             Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(member.getId(), spot.getId())
                     .orElseThrow(() -> new CustomException("INSUFFICIENT_STOCK", "보유하고 있지 않은 관광지 주식은 매도할 수 없습니다."));
 
@@ -120,11 +96,9 @@ public class StockService {
                 throw new CustomException("INSUFFICIENT_STOCK", "매도하려는 수량이 보유 수량보다 많습니다.");
             }
 
-            // 유저 포인트 반환 정산
             member.setBalance(member.getBalance().add(totalAmount));
             memberRepository.save(member);
 
-            // 포트폴리오 전량 매도 시 레코드 클리어 및 일부 매도 시 차감
             BigDecimal remainingQuantity = portfolio.getQuantity().subtract(request.getQuantity());
             if (remainingQuantity.compareTo(BigDecimal.ZERO) == 0) {
                 portfolioRepository.delete(portfolio);
@@ -135,7 +109,6 @@ public class StockService {
             }
         }
 
-        // 트랜잭션 거래 장부 기록 도장 저장
         Transaction transaction = Transaction.builder()
                 .memberId(member.getId())
                 .spotId(spot.getId())
@@ -152,7 +125,7 @@ public class StockService {
     }
 
     @Transactional(readOnly = true)
-    public MemberAssetResponse getMemberAssets(Long memberId) {
+    public MemberAssetResponse getMemberAssets(Long memberId, String sort) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + memberId));
 
@@ -189,6 +162,24 @@ public class StockService {
                     .build());
         }
 
+        // 정렬 로직 적용
+        if (sort != null) {
+            switch (sort) {
+                case "profit_rate":
+                    items.sort((a, b) -> b.getProfitLossRate().compareTo(a.getProfitLossRate()));
+                    break;
+                case "eval_amount":
+                    items.sort((a, b) -> b.getEvaluationAmount().compareTo(a.getEvaluationAmount()));
+                    break;
+                case "quantity":
+                    items.sort((a, b) -> b.getQuantity().compareTo(a.getQuantity()));
+                    break;
+                default:
+                    items.sort((a, b) -> b.getProfitLossRate().compareTo(a.getProfitLossRate()));
+                    break;
+            }
+        }
+
         BigDecimal totalAssetValue = member.getBalance().add(totalStockValue);
         BigDecimal totalProfitLossRate = BigDecimal.ZERO;
         if (totalStockPurchaseCost.compareTo(BigDecimal.ZERO) > 0) {
@@ -210,68 +201,149 @@ public class StockService {
     @Transactional
     public void updateDailyStockPrices() {
         List<Spot> spots = spotRepository.findAll();
-        LocalDateTime oneMinuteAgo = LocalDateTime.now().minusMinutes(1);
+        LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
 
         for (Spot spot : spots) {
             try {
+                // 기획서 기반 주가 변동 알고리즘
                 BigDecimal todayTourismScore = calculateTodayTourismScore(spot);
                 BigDecimal yesterdayTourismScore = calculateYesterdayTourismScore(spot);
 
-                BigDecimal tourismChangeRate = calculateTourismChangeRate(todayTourismScore, yesterdayTourismScore);
-                BigDecimal userTradingScore = calculateUserTradingScore(spot, oneMinuteAgo);
-                BigDecimal marketSentiment = calculateMarketSentiment();
+                // TS_change = (오늘TS - 어제TS) / 어제TS
+                BigDecimal tsChangeRate = calculateTourismChangeRate(todayTourismScore, yesterdayTourismScore);
 
-                BigDecimal finalChangeRate = calculateFinalChangeRate(tourismChangeRate, userTradingScore, marketSentiment);
-                finalChangeRate = applyPriceLimit(finalChangeRate);
+                // US(User Sentiment) = (매수량 - 매도량) / 전체거래량 (최근 하루치)
+                BigDecimal userSentiment = calculateUserSentiment(spot, oneDayAgo);
 
-                // 만약 가격 변동률이 계속 하락으로 쏠리면 강제 보정수식 적용 (황금 밸런스 가드 스크립트)
-                if (finalChangeRate.compareTo(BigDecimal.ZERO) == 0 || tourismChangeRate.compareTo(BigDecimal.ZERO) == 0) {
-                    applyFallbackPriceUpdate(spot);
+                // S(빅데이터 보정계수) = 0.9 ~ 1.2 가중치
+                BigDecimal bigDataCoefficient = calculateBigDataCoefficient(spot);
+
+                // 최종 변동률 (FinalChange) = (TS_change * 0.8 + US * 0.2) * S
+                BigDecimal finalChangeRate = calculateFinalChangeRate(tsChangeRate, userSentiment, bigDataCoefficient);
+
+                // 상하한가 30% 제한 룰 적용
+                finalChangeRate = applyPriceLimit30Percent(finalChangeRate);
+
+                if (finalChangeRate.compareTo(BigDecimal.ZERO) == 0 && tsChangeRate.compareTo(BigDecimal.ZERO) == 0) {
+                    applyGaussianRandomWalkFallback(spot);
                     continue;
                 }
 
                 BigDecimal newPrice = calculateNewPrice(spot.getCurrentPrice(), finalChangeRate);
 
-                // 가격이 너무 떨어져서 동전주(0원)가 되는 현상을 방지하는 최저 가이드라인 설정 (하한선 100원 방어)
                 if (newPrice.compareTo(BigDecimal.valueOf(100)) < 0) {
                     newPrice = BigDecimal.valueOf(100);
                 }
 
+                BigDecimal changeRate = BigDecimal.ZERO;
+                if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    changeRate = newPrice.subtract(spot.getPrevPrice())
+                            .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP);
+                }
+
+                // 전날 종가(prevPrice) 갱신
                 spot.setPrevPrice(spot.getCurrentPrice());
                 spot.setCurrentPrice(newPrice);
                 spot.setLastUpdated(LocalDateTime.now());
+                spot.setTourismDataWeight(todayTourismScore);
 
                 spotRepository.save(spot);
-                log.info("📊 시세 정산 배치 활성화 -> 종목: {}, 변동률: {}%, 가격: {} -> {}",
-                        spot.getName(), finalChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP), spot.getPrevPrice(), spot.getCurrentPrice());
+
+                savePriceHistory(spot, newPrice, changeRate, todayTourismScore);
+
+                log.info("시세 정산 배치 활성화 -> 종목: {}, TS_change: {}%, US: {}, S: {}, FinalChange: {}%, 가격: {} -> {}",
+                        spot.getName(), tsChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
+                        userSentiment.setScale(4, RoundingMode.HALF_UP),
+                        bigDataCoefficient.setScale(2, RoundingMode.HALF_UP),
+                        finalChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
+                        spot.getPrevPrice(), spot.getCurrentPrice());
             } catch (Exception e) {
-                log.error("정산 배치 중 익셉션 우회 감지 -> 폴백 엔진 가동: {}", e.getMessage());
-                applyFallbackPriceUpdate(spot);
+                log.error("정산 배치 중 익셉션 우회 감지 -> 가우시안 랜덤워크 폴백 엔진 가동: {}", e.getMessage());
+                applyGaussianRandomWalkFallback(spot);
             }
+        }
+    }
+
+    private void savePriceHistory(Spot spot, BigDecimal price, BigDecimal changeRate, BigDecimal tsScore) {
+        LocalDate today = LocalDate.now();
+        try {
+            PriceHistory existingHistory = priceHistoryRepository.findBySpotIdAndTradeDate(spot.getId(), today);
+            if (existingHistory != null) {
+                existingHistory.setPrice(price);
+                existingHistory.setChangeRate(changeRate);
+                existingHistory.setTsScore(tsScore);
+                priceHistoryRepository.save(existingHistory);
+            } else {
+                PriceHistory newHistory = PriceHistory.builder()
+                        .spotId(spot.getId())
+                        .tradeDate(today)
+                        .price(price)
+                        .changeRate(changeRate)
+                        .tsScore(tsScore)
+                        .createdAt(LocalDateTime.now())
+                        .build();
+                priceHistoryRepository.save(newHistory);
+            }
+        } catch (Exception e) {
+            log.error("가격 이력 저장 실패: spotId={}, error={}", spot.getId(), e.getMessage());
         }
     }
 
     private BigDecimal calculateTodayTourismScore(Spot spot) {
         try {
-            BigDecimal pNormalized = fetchVisitorTrendData(spot);
-            BigDecimal dNormalized = fetchDemandIntensityData(spot);
-            BigDecimal rNormalized = fetchResourceDemandData(spot);
+            String apiResponse = openApiService.fetchDetailInfo(spot.getContentId());
+            JsonNode rootNode = openApiService.parseJsonResponse(apiResponse);
+            JsonNode items = openApiService.extractItems(rootNode);
 
-            return pNormalized.multiply(BigDecimal.valueOf(0.6))
-                    .add(dNormalized.multiply(BigDecimal.valueOf(0.25)))
-                    .add(rNormalized.multiply(BigDecimal.valueOf(0.15)))
-                    .setScale(4, RoundingMode.HALF_UP);
+            if (items.size() > 0) {
+                JsonNode item = items.get(0);
+                
+                BigDecimal popularity = extractBigDecimal(item, "readcount");
+                BigDecimal stayDuration = extractBigDecimal(item, "staytime");
+                BigDecimal spending = extractBigDecimal(item, "spendmoney");
+                BigDecimal serviceQuality = extractBigDecimal(item, "servicequality");
+                BigDecimal cultureIndex = extractBigDecimal(item, "cultureindex");
+
+                BigDecimal pNormalized = openApiService.normalizePopularity(popularity);
+                BigDecimal dStayNormalized = openApiService.normalizeStayDuration(stayDuration);
+                BigDecimal dSpendNormalized = openApiService.normalizeSpending(spending);
+                BigDecimal rServiceNormalized = openApiService.normalizeServiceQuality(serviceQuality);
+                BigDecimal rCultureNormalized = openApiService.normalizeCultureIndex(cultureIndex);
+
+                BigDecimal dNormalized = dStayNormalized.add(dSpendNormalized).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
+                BigDecimal rNormalized = rServiceNormalized.add(rCultureNormalized).divide(BigDecimal.valueOf(2), 4, RoundingMode.HALF_UP);
+
+                return openApiService.calculateTourismScore(pNormalized, dNormalized, rNormalized);
+            } else {
+                log.warn("API 응답에 데이터가 없어서 기본값 사용: spotId={}", spot.getId());
+                return calculateFallbackTourismScore(spot);
+            }
         } catch (Exception e) {
+            log.error("관광 데이터 조회 실패로 폴백 사용: spotId={}, error={}", spot.getId(), e.getMessage());
             return calculateFallbackTourismScore(spot);
         }
     }
 
+    private BigDecimal extractBigDecimal(JsonNode node, String fieldName) {
+        try {
+            if (node.has(fieldName) && !node.get(fieldName).isNull()) {
+                String value = node.get(fieldName).asText();
+                if (value != null && !value.isEmpty()) {
+                    return new BigDecimal(value);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("필드 추출 실패: fieldName={}", fieldName);
+        }
+        return null;
+    }
+
     private BigDecimal calculateYesterdayTourismScore(Spot spot) {
-        // 어제 점수를 오늘과 완벽히 똑같이 주면 변동률이 항상 0이 되므로, 어제 스코어 레퍼런스 기준에 미세한 음양 변동 가중치를 줍니다.
         BigDecimal baseWeight = spot.getTourismDataWeight();
-        // 무작위로 -5% ~ +5% 기조를 주어 기저 전광판이 살아서 요동치도록 아키텍처 변경
-        double factor = 0.95 + (random.nextDouble() * 0.10);
-        return baseWeight.multiply(BigDecimal.valueOf(factor)).setScale(4, RoundingMode.HALF_UP);
+        if (baseWeight == null || baseWeight.compareTo(BigDecimal.ZERO) == 0) {
+            baseWeight = BigDecimal.valueOf(0.5);
+        }
+        return baseWeight;
     }
 
     private BigDecimal calculateTourismChangeRate(BigDecimal todayScore, BigDecimal yesterdayScore) {
@@ -297,44 +369,77 @@ public class StockService {
         return buyVolume.subtract(sellVolume).divide(totalVolume, 4, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calculateMarketSentiment() {
-        int dayOfWeek = LocalDateTime.now().getDayOfWeek().getValue();
-        if (dayOfWeek >= 6) return BigDecimal.valueOf(1.1);
-        if (dayOfWeek == 5) return BigDecimal.valueOf(1.2);
-        if (dayOfWeek <= 2) return BigDecimal.valueOf(0.9);
-        return BigDecimal.valueOf(1.0);
+    // US(User Sentiment) = (매수량 - 매도량) / 전체거래량 (최근 하루치)
+    private BigDecimal calculateUserSentiment(Spot spot, LocalDateTime startTime) {
+        List<Transaction> recentTransactions = transactionRepository.findBySpotIdAndCreatedAtAfterOrderByCreatedAtAsc(spot.getId(), startTime);
+        if (recentTransactions.isEmpty()) return BigDecimal.ZERO;
+
+        BigDecimal buyVolume = BigDecimal.ZERO;
+        BigDecimal sellVolume = BigDecimal.ZERO;
+
+        for (Transaction tx : recentTransactions) {
+            if ("BUY".equals(tx.getType())) buyVolume = buyVolume.add(tx.getQuantity());
+            else if ("SELL".equals(tx.getType())) sellVolume = sellVolume.add(tx.getQuantity());
+        }
+
+        BigDecimal totalVolume = buyVolume.add(sellVolume);
+        if (totalVolume.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
+
+        return buyVolume.subtract(sellVolume).divide(totalVolume, 4, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calculateFinalChangeRate(BigDecimal tourismChangeRate, BigDecimal userTradingScore, BigDecimal marketSentiment) {
-        return tourismChangeRate.multiply(BigDecimal.valueOf(0.8))
-                .add(userTradingScore.multiply(BigDecimal.valueOf(0.2)))
-                .multiply(marketSentiment)
-                .setScale(4, RoundingMode.HALF_UP);
+    // S(빅데이터 보정계수) = 0.9 ~ 1.2 가중치 (관광 데이터 트렌드 기반)
+    private BigDecimal calculateBigDataCoefficient(Spot spot) {
+        // 현재는 랜덤 가중치 적용 (향후 빅데이터 API 연동 가능)
+        double baseCoefficient = 0.9 + (Math.random() * 0.3); // 0.9 ~ 1.2
+        return BigDecimal.valueOf(baseCoefficient).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal applyPriceLimit(BigDecimal changeRate) {
-        BigDecimal maxChange = BigDecimal.valueOf(0.10);
-        BigDecimal minChange = BigDecimal.valueOf(-0.10);
-        if (changeRate.compareTo(maxChange) > 0) return maxChange;
-        if (changeRate.compareTo(minChange) < 0) return minChange;
+    // 최종 변동률 (FinalChange) = (TS_change * 0.8 + US * 0.2) * S
+    private BigDecimal calculateFinalChangeRate(BigDecimal tsChangeRate, BigDecimal userSentiment, BigDecimal bigDataCoefficient) {
+        BigDecimal weightedChange = tsChangeRate.multiply(BigDecimal.valueOf(0.8))
+                .add(userSentiment.multiply(BigDecimal.valueOf(0.2)));
+        return weightedChange.multiply(bigDataCoefficient).setScale(4, RoundingMode.HALF_UP);
+    }
+
+    // 상하한가 30% 제한 룰 적용
+    private BigDecimal applyPriceLimit30Percent(BigDecimal changeRate) {
+        BigDecimal maxChange = BigDecimal.valueOf(0.30);
+        BigDecimal minChange = BigDecimal.valueOf(-0.30);
+        
+        if (changeRate.compareTo(maxChange) > 0) {
+            log.debug("상한가 30% 도달로 변동률 제한: 원본={}, 제한={}", changeRate, maxChange);
+            return maxChange;
+        }
+        if (changeRate.compareTo(minChange) < 0) {
+            log.debug("하한가 30% 도달로 변동률 제한: 원본={}, 제한={}", changeRate, minChange);
+            return minChange;
+        }
         return changeRate;
     }
 
-    private BigDecimal calculateNewPrice(BigDecimal currentPrice, BigDecimal finalChangeRate) {
-        return currentPrice.add(currentPrice.multiply(finalChangeRate)).setScale(0, RoundingMode.HALF_UP);
-    }
+    // 가우시안 랜덤워크 폴백: -5% ~ +5% 내외로 자연스럽게 상시 변동
+    private void applyGaussianRandomWalkFallback(Spot spot) {
+        // 가우시안 분포 기반 랜덤 변동률 생성 (평균 0, 표준편차 0.02)
+        java.util.Random random = new java.util.Random();
+        double gaussian = random.nextGaussian();
+        double changeRate = gaussian * 0.02; // 약 ±5% 범위
+        
+        // -5% ~ +5% 범위 제한
+        if (changeRate > 0.05) changeRate = 0.05;
+        if (changeRate < -0.05) changeRate = -0.05;
+        
+        BigDecimal randomChangeRate = BigDecimal.valueOf(changeRate).setScale(4, RoundingMode.HALF_UP);
+        BigDecimal newPrice = calculateNewPrice(spot.getCurrentPrice(), randomChangeRate);
 
-    private void applyFallbackPriceUpdate(Spot spot) {
-        // 🔥 무한 하락 폭락 버그 전면 수리 파트!
-        // 균등하게 우상향과 우하향이 반반 확률로 터지도록 변동률 범위를 -4% ~ +5%로 전면 상향 조정
-        double randomRate = -0.04 + (random.nextDouble() * 0.09);
-        BigDecimal defaultChangeRate = BigDecimal.valueOf(randomRate);
+        if (newPrice.compareTo(BigDecimal.valueOf(100)) < 0) {
+            newPrice = BigDecimal.valueOf(100);
+        }
 
-        BigDecimal newPrice = calculateNewPrice(spot.getCurrentPrice(), applyPriceLimit(defaultChangeRate));
-
-        // 폭락 버그 방어 코드 (어떠한 경우에도 주가가 최소 500원 이하로 떨어지지 않도록 심사위원 시연 안전 가드 주입)
-        if (newPrice.compareTo(BigDecimal.valueOf(500)) < 0) {
-            newPrice = spot.getCurrentPrice().add(BigDecimal.valueOf(100 + random.nextInt(200)));
+        BigDecimal changeRateForHistory = BigDecimal.ZERO;
+        if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
+            changeRateForHistory = newPrice.subtract(spot.getPrevPrice())
+                    .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP);
         }
 
         spot.setPrevPrice(spot.getCurrentPrice());
@@ -342,46 +447,26 @@ public class StockService {
         spot.setLastUpdated(LocalDateTime.now());
         spotRepository.save(spot);
 
-        log.info("🎲 가상 마켓 폴백 앤진 구동 -> 종목: {}, 임의 보정가 반영: {} -> {}", spot.getName(), spot.getPrevPrice(), spot.getCurrentPrice());
+        savePriceHistory(spot, newPrice, changeRateForHistory, spot.getTourismDataWeight());
+
+        log.info("가우시안 랜덤워크 폴백 엔진 구동 -> 종목: {}, 랜덤 변동률: {}%, 가격: {} -> {}",
+                spot.getName(), randomChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
+                spot.getPrevPrice(), spot.getCurrentPrice());
     }
 
-    private BigDecimal fetchVisitorTrendData(Spot spot) {
-        return calculateVisitorTrend(random.nextInt(15000) + 1000);
-    }
 
-    private BigDecimal fetchDemandIntensityData(Spot spot) {
-        return calculateDemandIntensity(random.nextInt(200) + 30, random.nextInt(500000) + 50000);
-    }
-
-    private BigDecimal fetchResourceDemandData(Spot spot) {
-        return calculateResourceDemand(random.nextInt(3000) + 200, random.nextInt(8000) + 500);
-    }
-
-    private BigDecimal calculateVisitorTrend(Integer foreignVisitorCnt) {
-        if (foreignVisitorCnt == null) foreignVisitorCnt = 0;
-        return BigDecimal.valueOf(foreignVisitorCnt).divide(BigDecimal.valueOf(10000), 4, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal calculateDemandIntensity(Integer stayTimeMin, Integer spendMoneyWon) {
-        if (stayTimeMin == null) stayTimeMin = 0;
-        if (spendMoneyWon == null) spendMoneyWon = 0;
-        BigDecimal stayTimeScore = BigDecimal.valueOf(stayTimeMin).divide(BigDecimal.valueOf(4320), 4, RoundingMode.HALF_UP);
-        BigDecimal spendScore = BigDecimal.valueOf(spendMoneyWon).divide(BigDecimal.valueOf(1000000), 4, RoundingMode.HALF_UP);
-        return stayTimeScore.add(spendScore).multiply(BigDecimal.valueOf(0.5));
-    }
-
-    private BigDecimal calculateResourceDemand(Integer snsMentionCnt, Integer cultureSearchCnt) {
-        if (snsMentionCnt == null) snsMentionCnt = 0;
-        if (cultureSearchCnt == null) cultureSearchCnt = 0;
-        BigDecimal snsScore = BigDecimal.valueOf(snsMentionCnt).divide(BigDecimal.valueOf(50000), 4, RoundingMode.HALF_UP);
-        BigDecimal searchScore = BigDecimal.valueOf(cultureSearchCnt).divide(BigDecimal.valueOf(100000), 4, RoundingMode.HALF_UP);
-        return snsScore.add(searchScore).multiply(BigDecimal.valueOf(0.5));
+    private BigDecimal calculateNewPrice(BigDecimal currentPrice, BigDecimal finalChangeRate) {
+        return currentPrice.add(currentPrice.multiply(finalChangeRate)).setScale(0, RoundingMode.HALF_UP);
     }
 
     private BigDecimal calculateFallbackTourismScore(Spot spot) {
-        BigDecimal baseWeight = spot.getTourismDataWeight();
-        BigDecimal randomFactor = BigDecimal.valueOf(0.9 + (random.nextDouble() * 0.2));
-        return baseWeight.multiply(randomFactor).setScale(4, RoundingMode.HALF_UP);
+        String theme = spot.getTheme() != null ? spot.getTheme() : "자연";
+        String region = spot.getRegion() != null ? spot.getRegion() : "서울";
+        
+        log.warn("API 실패로 테마/지역 기반 Fallback 점수 계산: spotId={}, theme={}, region={}", 
+                spot.getId(), theme, region);
+        
+        return openApiService.calculateFallbackTourismScore(theme, region);
     }
 
     public List<StockResponse> getAllStocks() {
@@ -413,8 +498,128 @@ public class StockService {
         Spot spot = spotRepository.findById(spotId).orElseThrow(() -> new IllegalArgumentException("Spot not found"));
         Map<String, Object> metrics = new HashMap<>();
         metrics.put("spotName", spot.getName());
-        metrics.put("simulatedVisitorCnt", random.nextInt(20000));
+        metrics.put("tourismScore", spot.getTourismDataWeight());
         metrics.put("timestamp", LocalDateTime.now().toString());
         return metrics;
+    }
+
+    public List<StockResponse> getTopGainers() {
+        List<Spot> spots = spotRepository.findAllOrderByChangeRateDesc();
+        return spots.stream()
+                .limit(3)
+                .map(this::mapToStockResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<StockResponse> getTopLosers() {
+        List<Spot> spots = spotRepository.findAllOrderByChangeRateAsc();
+        return spots.stream()
+                .limit(3)
+                .map(this::mapToStockResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<RegionalIndexResponse> getRegionalIndex() {
+        List<Spot> allSpots = spotRepository.findAll();
+        Map<String, List<Spot>> spotsByRegion = allSpots.stream()
+                .collect(Collectors.groupingBy(Spot::getRegion));
+
+        List<RegionalIndexResponse> regionalIndices = new ArrayList<>();
+        for (Map.Entry<String, List<Spot>> entry : spotsByRegion.entrySet()) {
+            String region = entry.getKey();
+            List<Spot> regionSpots = entry.getValue();
+
+            BigDecimal totalChangeRate = BigDecimal.ZERO;
+            for (Spot spot : regionSpots) {
+                BigDecimal changeRate = BigDecimal.ZERO;
+                if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
+                            .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP);
+                }
+                totalChangeRate = totalChangeRate.add(changeRate);
+            }
+
+            BigDecimal averageChangeRate = totalChangeRate.divide(
+                    BigDecimal.valueOf(regionSpots.size()), 4, RoundingMode.HALF_UP);
+
+            regionalIndices.add(RegionalIndexResponse.builder()
+                    .region(region)
+                    .averageChangeRate(averageChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP))
+                    .spotCount((long) regionSpots.size())
+                    .build());
+        }
+
+        return regionalIndices.stream()
+                .sorted(Comparator.comparing(RegionalIndexResponse::getAverageChangeRate).reversed())
+                .collect(Collectors.toList());
+    }
+
+    public List<StockResponse> searchStocks(String region, String theme, String sort) {
+        List<Spot> spots;
+
+        switch (sort) {
+            case "price":
+                spots = spotRepository.findByRegionAndThemeOrderByPriceDesc(region, theme);
+                break;
+            case "price_asc":
+                spots = spotRepository.findByRegionAndThemeOrderByPriceAsc(region, theme);
+                break;
+            case "change_rate":
+                spots = spotRepository.findByRegionAndThemeOrderByChangeRateDesc(region, theme);
+                break;
+            case "change_rate_asc":
+                spots = spotRepository.findByRegionAndThemeOrderByChangeRateAsc(region, theme);
+                break;
+            case "tier":
+                spots = spotRepository.findByRegionAndThemeOrderByTierAsc(region, theme);
+                break;
+            default:
+                spots = spotRepository.findByRegionAndTheme(region, theme);
+                break;
+        }
+
+        return spots.stream()
+                .map(this::mapToStockResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<PriceHistoryResponse> getPriceHistory(Long spotId, String period) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate;
+
+        switch (period) {
+            case "1w":
+                startDate = endDate.minusWeeks(1);
+                break;
+            case "1m":
+                startDate = endDate.minusMonths(1);
+                break;
+            case "3m":
+                startDate = endDate.minusMonths(3);
+                break;
+            case "all":
+                startDate = LocalDate.of(2000, 1, 1);
+                break;
+            default:
+                startDate = endDate.minusWeeks(1);
+                break;
+        }
+
+        List<PriceHistory> histories;
+        if (period.equals("all")) {
+            histories = priceHistoryRepository.findBySpotIdOrderByTradeDateAsc(spotId);
+        } else {
+            histories = priceHistoryRepository.findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(
+                    spotId, startDate, endDate);
+        }
+
+        return histories.stream()
+                .map(ph -> PriceHistoryResponse.builder()
+                        .tradeDate(ph.getTradeDate())
+                        .price(ph.getPrice())
+                        .changeRate(ph.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP))
+                        .tsScore(ph.getTsScore())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

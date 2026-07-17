@@ -1,12 +1,8 @@
 -- 심사위원 현장 테스트용 기본 적재 마스터 데이터셋 명세
-INSERT INTO members (id, username, balance, created_at)
-VALUES (1, '심사위원_테스트계정', 1000000.00, NOW());
+MERGE INTO members (id, username, email, password, balance, created_at) KEY(id) VALUES (1, '심사위원_테스트계정', 'judge@tourfolio.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 1000000.00, NOW());
 
-INSERT INTO spots (id, name, area_code, content_id, tier, current_price, prev_price, tourism_data_weight, last_updated, created_at)
-VALUES (1, '부산 해운대 엘시티', '6', '264175', 1, 5000.00, 5000.00, 85.50, NOW(), NOW());
+MERGE INTO spots (id, name, area_code, content_id, signgu_cd, tier, theme, region, address, initial_price, current_price, prev_price, tourism_data_weight, last_updated, created_at, image_url, area_name, theme_tag, description) KEY(id) VALUES (1, '부산 해운대 엘시티', '6', '264175', '1', 1, '레저', '부산', '부산광역시 해운대구 해운대해변로 264', 5000.00, 5000.00, 5000.00, 0.8550, NOW(), NOW(), 'https://tong.visitkorea.or.kr/cms/resource/20/2666420_image2_1.jpg', '부산', '레저', '해운대의 랜드마크 쇼핑몰과 호텔 복합 시설로, 해안 전망과 쇼핑을 즐길 수 있는 프리미엄 휴양 공간입니다.');
 
-INSERT INTO spots (id, name, area_code, content_id, tier, current_price, prev_price, tourism_data_weight, last_updated, created_at)
-VALUES (2, '서울 경복궁 광화문', '1', '126508', 1, 12000.00, 12000.00, 92.10, NOW(), NOW());
+MERGE INTO spots (id, name, area_code, content_id, signgu_cd, tier, theme, region, address, initial_price, current_price, prev_price, tourism_data_weight, last_updated, created_at, image_url, area_name, theme_tag, description) KEY(id) VALUES (2, '서울 경복궁 광화문', '1', '126508', '1', 1, '역사', '서울', '서울특별시 종로구 사직로 161', 12000.00, 12000.00, 12000.00, 0.9210, NOW(), NOW(), 'https://tong.visitkorea.or.kr/cms/resource/20/2666420_image2_1.jpg', '서울', '역사', '조선 왕조의 정궁으로, 한국의 대표적인 역사 문화 유산입니다. 광화문 앞 광장에서 다양한 문화 행사가 열립니다.');
 
-INSERT INTO spots (id, name, area_code, content_id, tier, current_price, prev_price, tourism_data_weight, last_updated, created_at)
-VALUES (3, '제주 성산일출봉', '39', '126449', 2, 3500.00, 3500.00, 74.30, NOW(), NOW());
+MERGE INTO spots (id, name, area_code, content_id, signgu_cd, tier, theme, region, address, initial_price, current_price, prev_price, tourism_data_weight, last_updated, created_at, image_url, area_name, theme_tag, description) KEY(id) VALUES (3, '제주 성산일출봉', '39', '126449', '1', 2, '자연', '제주', '제주특별자치도 서귀포시 성산읍 성산리 1', 3500.00, 3500.00, 3500.00, 0.7430, NOW(), NOW(), 'https://tong.visitkorea.or.kr/cms/resource/20/2666420_image2_1.jpg', '제주', '자연', '제주 동부의 화산섬 지형으로, 장엄한 일출과 독특한 지질학적 가치를 지닌 유네스코 자연유산입니다.');

@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/entity/Member.java
 package com.tourfolio.app.entity;
 
 import jakarta.persistence.*;
@@ -24,9 +25,15 @@ public class Member {
     @Column(nullable = false, length = 50)
     private String username;
 
+    @Column(nullable = false, length = 100, unique = true)
+    private String email;
+
+    @Column(nullable = false, length = 255)
+    private String password;
+
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 }

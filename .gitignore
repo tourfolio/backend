@@ -27,9 +27,11 @@ logs/
 .env
 .env.local
 .env.*.local
+*.pem
 
 # Docker
 docker-compose.override.yml
+tourfolio*.tar.gz
 
 # Temporary files
 *.tmp

@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/entity/Spot.java
 package com.tourfolio.app.entity;
 
 import jakarta.persistence.*;
@@ -30,21 +31,48 @@ public class Spot {
     @Column(nullable = false, length = 50)
     private String contentId;
 
+    @Column(length = 20)
+    private String signguCd;
+
     @Column(nullable = false)
     private Integer tier;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(nullable = false, length = 20)
+    private String theme;
+
+    @Column(nullable = false, length = 50)
+    private String region;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(name = "initial_price", nullable = false, precision = 19, scale = 2)
+    private BigDecimal initialPrice;
+
+    @Column(name = "current_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal currentPrice;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(name = "prev_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal prevPrice;
 
-    @Column(nullable = false, precision = 19, scale = 2)
+    @Column(name = "tourism_data_weight", nullable = false, precision = 19, scale = 2)
     private BigDecimal tourismDataWeight;
 
-    @Column(nullable = false)
+    @Column(name = "last_updated", nullable = false)
     private LocalDateTime lastUpdated;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(length = 500)
+    private String imageUrl;
+
+    @Column(length = 50)
+    private String areaName;
+
+    @Column(length = 50)
+    private String themeTag;
+
+    @Column(length = 500)
+    private String description;
 }
