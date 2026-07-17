@@ -1,0 +1,15 @@
+.git
+.github
+.gradle
+.idea
+build
+logs
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+.env
+.env.*
+*.pem
+tourfolio.tar.gz

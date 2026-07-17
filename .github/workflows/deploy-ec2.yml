@@ -1,0 +1,129 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: true
+
+env:
+  EC2_HOST: 100.30.180.234
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Build
+        run: ./gradlew bootJar -x test --no-daemon
+
+      - name: Prepare deploy artifact
+        run: |
+          cp build/libs/*.jar app.jar
+          tar -czf tourfolio-deploy.tar.gz Dockerfile.deploy docker-compose.deploy.yml app.jar
+
+      - name: Prepare SSH
+        env:
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          test -n "$EC2_SSH_KEY"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -p "${EC2_PORT:-22}" "$EC2_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload source to EC2
+        env:
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          SSH_USER="${EC2_USER:-ubuntu}"
+          scp -i ~/.ssh/ec2_key -P "${EC2_PORT:-22}" tourfolio-deploy.tar.gz "${SSH_USER}@${EC2_HOST}:/tmp/tourfolio-deploy.tar.gz"
+
+      - name: Deploy on EC2
+        env:
+          EC2_PORT: ${{ secrets.EC2_PORT }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_APP_DIR: ${{ secrets.EC2_APP_DIR }}
+          SERVER_PORT: ${{ secrets.SERVER_PORT }}
+          SWAGGER_SERVER_URL: ${{ secrets.SWAGGER_SERVER_URL }}
+          OPENAPI_SERVICE_KEY: ${{ secrets.OPENAPI_SERVICE_KEY }}
+          ENDPOINT_DEMAND: ${{ secrets.ENDPOINT_DEMAND }}
+          ENDPOINT_RESDEM: ${{ secrets.ENDPOINT_RESDEM }}
+          ENDPOINT_VISITOR: ${{ secrets.ENDPOINT_VISITOR }}
+          ENDPOINT_FORECAST: ${{ secrets.ENDPOINT_FORECAST }}
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: ${{ secrets.SPRING_DATASOURCE_DRIVER_CLASS_NAME }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+        run: |
+          SSH_USER="${EC2_USER:-ubuntu}"
+          ssh -i ~/.ssh/ec2_key -p "${EC2_PORT:-22}" "${SSH_USER}@${EC2_HOST}" \
+            "EC2_APP_DIR='${EC2_APP_DIR:-}' \
+             SERVER_PORT='${SERVER_PORT:-8000}' \
+             SWAGGER_SERVER_URL='${SWAGGER_SERVER_URL:-http://100.30.180.234:8000}' \
+             OPENAPI_SERVICE_KEY='${OPENAPI_SERVICE_KEY:-}' \
+             ENDPOINT_DEMAND='${ENDPOINT_DEMAND:-https://apis.data.go.kr/B551011/AreaTarDemDsService}' \
+             ENDPOINT_RESDEM='${ENDPOINT_RESDEM:-https://apis.data.go.kr/B551011/AreaTarResDemService}' \
+             ENDPOINT_VISITOR='${ENDPOINT_VISITOR:-https://apis.data.go.kr/B551011/DataLabService}' \
+             ENDPOINT_FORECAST='${ENDPOINT_FORECAST:-https://apis.data.go.kr/B551011/TatsCnctrRateService}' \
+             SPRING_DATASOURCE_URL='${SPRING_DATASOURCE_URL:-jdbc:h2:mem:tourfoliodb}' \
+             SPRING_DATASOURCE_DRIVER_CLASS_NAME='${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-org.h2.Driver}' \
+             SPRING_DATASOURCE_USERNAME='${SPRING_DATASOURCE_USERNAME:-sa}' \
+             SPRING_DATASOURCE_PASSWORD='${SPRING_DATASOURCE_PASSWORD:-}' \
+             bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          APP_DIR="${EC2_APP_DIR:-$HOME/tourfolio}"
+          mkdir -p "$APP_DIR"
+          tar -xzf /tmp/tourfolio-deploy.tar.gz -C "$APP_DIR"
+          cd "$APP_DIR"
+
+          cat > .env <<ENV
+          SERVER_PORT=${SERVER_PORT}
+          SWAGGER_SERVER_URL=${SWAGGER_SERVER_URL}
+          OPENAPI_SERVICE_KEY=${OPENAPI_SERVICE_KEY}
+          ENDPOINT_DEMAND=${ENDPOINT_DEMAND}
+          ENDPOINT_RESDEM=${ENDPOINT_RESDEM}
+          ENDPOINT_VISITOR=${ENDPOINT_VISITOR}
+          ENDPOINT_FORECAST=${ENDPOINT_FORECAST}
+          SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME=${SPRING_DATASOURCE_DRIVER_CLASS_NAME}
+          SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+          SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+          ENV
+
+          if ! docker compose version >/dev/null 2>&1 && ! sudo docker compose version >/dev/null 2>&1; then
+            if command -v apt-get >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y docker-compose-v2
+            else
+              echo "Docker Compose is not available and this instance does not use apt-get." >&2
+              exit 1
+            fi
+          fi
+
+          if docker compose version >/dev/null 2>&1; then
+            DOCKER_COMPOSE="docker compose"
+          else
+            DOCKER_COMPOSE="sudo docker compose"
+          fi
+
+          $DOCKER_COMPOSE -f docker-compose.deploy.yml up -d --build
+          $DOCKER_COMPOSE -f docker-compose.deploy.yml ps
+          REMOTE
