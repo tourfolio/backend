@@ -30,7 +30,11 @@ CREATE TABLE spots (
     prev_price DECIMAL(19,2) NOT NULL,
     tourism_data_weight DECIMAL(19,2) NOT NULL,
     last_updated TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    image_url VARCHAR(500),
+    area_name VARCHAR(50),
+    theme_tag VARCHAR(20),
+    description VARCHAR(500)
 );
 
 CREATE TABLE price_history (
