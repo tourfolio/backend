@@ -35,8 +35,7 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    // H2 내장형 인메모리 데이터베이스 (공모전 MVP 최적화 사양)
-    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.mysql:mysql-connector-j'
 
     // Swagger UI 명세서 전광판 라이브러리
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'

@@ -22,4 +22,7 @@ public interface PriceHistoryRepository extends JpaRepository<PriceHistory, Long
 
     @Query("SELECT ph FROM PriceHistory ph WHERE ph.spotId = :spotId AND ph.tradeDate BETWEEN :startDate AND :endDate ORDER BY ph.tradeDate ASC")
     List<PriceHistory> findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(@Param("spotId") Long spotId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT ph FROM PriceHistory ph WHERE ph.spotId = :spotId ORDER BY ph.tradeDate DESC LIMIT 1")
+    PriceHistory findFirstBySpotIdOrderByTradeDateDesc(@Param("spotId") Long spotId);
 }

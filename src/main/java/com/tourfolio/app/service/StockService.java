@@ -41,6 +41,8 @@ public class StockService {
     private final PortfolioRepository portfolioRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final OpenApiService openApiService;
+    private final TourIndicatorService tourIndicatorService;
+    private final PriceCalculationService priceCalculationService;
 
     @Transactional(rollbackFor = Exception.class)
     public Transaction executeTrade(TradeRequest request) {
@@ -200,68 +202,81 @@ public class StockService {
 
     @Transactional
     public void updateDailyStockPrices() {
+        log.info("=== 관광 지표 기반 주가 정산 배치 시작 ===");
+        
+        // 캐시 초기화
+        tourIndicatorService.clearCache();
+        
+        // 전체 종목 조회
         List<Spot> spots = spotRepository.findAll();
-        LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
-
+        log.info("전체 종목 수: {}", spots.size());
+        
+        // 광역시도 코드 리스트 추출 (S계수 사전 계산용)
+        List<String> areaCodes = spots.stream()
+                .map(Spot::getAreaCode)
+                .distinct()
+                .toList();
+        
+        // S계수 사전 계산 (1회)
+        tourIndicatorService.initializeSCache(areaCodes);
+        
+        // 종목별 반복
         for (Spot spot : spots) {
             try {
-                // 기획서 기반 주가 변동 알고리즘
-                BigDecimal todayTourismScore = calculateTodayTourismScore(spot);
-                BigDecimal yesterdayTourismScore = calculateYesterdayTourismScore(spot);
-
-                // TS_change = (오늘TS - 어제TS) / 어제TS
-                BigDecimal tsChangeRate = calculateTourismChangeRate(todayTourismScore, yesterdayTourismScore);
-
-                // US(User Sentiment) = (매수량 - 매도량) / 전체거래량 (최근 하루치)
-                BigDecimal userSentiment = calculateUserSentiment(spot, oneDayAgo);
-
-                // S(빅데이터 보정계수) = 0.9 ~ 1.2 가중치
-                BigDecimal bigDataCoefficient = calculateBigDataCoefficient(spot);
-
-                // 최종 변동률 (FinalChange) = (TS_change * 0.8 + US * 0.2) * S
-                BigDecimal finalChangeRate = calculateFinalChangeRate(tsChangeRate, userSentiment, bigDataCoefficient);
-
-                // 상하한가 30% 제한 룰 적용
-                finalChangeRate = applyPriceLimit30Percent(finalChangeRate);
-
-                if (finalChangeRate.compareTo(BigDecimal.ZERO) == 0 && tsChangeRate.compareTo(BigDecimal.ZERO) == 0) {
-                    applyGaussianRandomWalkFallback(spot);
-                    continue;
-                }
-
-                BigDecimal newPrice = calculateNewPrice(spot.getCurrentPrice(), finalChangeRate);
-
-                if (newPrice.compareTo(BigDecimal.valueOf(100)) < 0) {
-                    newPrice = BigDecimal.valueOf(100);
-                }
-
+                // 어제 컨텍스트 조회
+                PriceCalculationService.YesterdayContext ctx = priceCalculationService.getYesterdayContext(spot);
+                
+                // 이전 지표값 (폴백용)
+                Double previousP = ctx != null ? ctx.getYesterdayTS() : 0.5;
+                Double previousD = 0.5;
+                Double previousR = 0.5;
+                
+                // 지표 수집 (P/D/R 수집, 캐싱 활용)
+                Double p = tourIndicatorService.collectP(spot, previousP);
+                Double d = tourIndicatorService.collectD(spot.getAreaCode(), spot.getSignguCd(), previousD);
+                Double r = tourIndicatorService.collectR(spot.getAreaCode(), spot.getSignguCd(), previousR);
+                Double s = tourIndicatorService.collectS(spot.getAreaCode());
+                
+                // 가격 계산
+                BigDecimal newPrice = priceCalculationService.calculateTodayPrice(spot, ctx, p, d, r, s);
+                
+                // 변동률 계산
                 BigDecimal changeRate = BigDecimal.ZERO;
                 if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
                     changeRate = newPrice.subtract(spot.getPrevPrice())
                             .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP);
                 }
-
+                
+                // TS 계산 (저장용)
+                double todayTS = (p * 0.60) + (d * 0.25) + (r * 0.15);
+                BigDecimal tsScore = BigDecimal.valueOf(todayTS);
+                
                 // 전날 종가(prevPrice) 갱신
                 spot.setPrevPrice(spot.getCurrentPrice());
                 spot.setCurrentPrice(newPrice);
                 spot.setLastUpdated(LocalDateTime.now());
-                spot.setTourismDataWeight(todayTourismScore);
-
+                spot.setTourismDataWeight(tsScore);
+                
                 spotRepository.save(spot);
-
-                savePriceHistory(spot, newPrice, changeRate, todayTourismScore);
-
-                log.info("시세 정산 배치 활성화 -> 종목: {}, TS_change: {}%, US: {}, S: {}, FinalChange: {}%, 가격: {} -> {}",
-                        spot.getName(), tsChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
-                        userSentiment.setScale(4, RoundingMode.HALF_UP),
-                        bigDataCoefficient.setScale(2, RoundingMode.HALF_UP),
-                        finalChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
-                        spot.getPrevPrice(), spot.getCurrentPrice());
+                
+                // price_history INSERT
+                savePriceHistory(spot, newPrice, changeRate, tsScore);
+                
+                log.info("주가 정산 완료: 종목={}, 어제가격={}, 오늘가격={}, 변동률={}%, P={}, D={}, R={}, S={}",
+                        spot.getName(), spot.getPrevPrice(), newPrice, 
+                        changeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
+                        String.format("%.3f", p), String.format("%.3f", d), 
+                        String.format("%.3f", r), s);
+                        
             } catch (Exception e) {
-                log.error("정산 배치 중 익셉션 우회 감지 -> 가우시안 랜덤워크 폴백 엔진 가동: {}", e.getMessage());
+                log.error("주가 정산 실패: spotId={}, name={}, error={}", 
+                        spot.getId(), spot.getName(), e.getMessage());
+                // 실패 시 가우시안 랜덤워크 폴백
                 applyGaussianRandomWalkFallback(spot);
             }
         }
+        
+        log.info("=== 관광 지표 기반 주가 정산 배치 완료 ===");
     }
 
     private void savePriceHistory(Spot spot, BigDecimal price, BigDecimal changeRate, BigDecimal tsScore) {

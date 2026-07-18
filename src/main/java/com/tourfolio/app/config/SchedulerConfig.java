@@ -15,9 +15,9 @@ public class SchedulerConfig {
 
     private final StockService stockService;
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(cron = "0 0 9 * * *")
     public void updateDailyStockPrices() {
-        log.info("⏰ 1분 주기 배치: 실시간 관광 지표 및 체결 시세 정산 롤링 시작");
+        log.info("⏰ 매일 오전 9시 배치: 관광 지표 기반 주가 정산 시작");
         try {
             stockService.updateDailyStockPrices();
         } catch (Exception e) {

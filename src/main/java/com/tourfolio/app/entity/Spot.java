@@ -49,6 +49,9 @@ public class Spot {
     @Column(name = "initial_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal initialPrice;
 
+    @Column(name = "ipo_price", precision = 19, scale = 2)
+    private BigDecimal ipoPrice;
+
     @Column(name = "current_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal currentPrice;
 
