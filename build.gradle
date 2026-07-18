@@ -8,7 +8,9 @@ group = 'com.tourfolio'
 version = '0.0.1-SNAPSHOT'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
 }
 
 configurations {
@@ -22,27 +24,37 @@ repositories {
 }
 
 dependencies {
-    // 핵심 웹 및 데이터베이스 의존성
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    // 1. 핵심 웹 의존성
     implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 2. [추가 완료] WebClient 사용을 위한 필수 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // 3. 데이터베이스 및 JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'com.h2database:h2' // 테스트용 H2 DB
+
+    // 4. 보안 및 유틸리티
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
-    
-    // 인증 시스템용 핵심 시큐리티 모듈 (ClassNotFoundException 해결용)
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
-    // Lombok 코덱
+    // 5. Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    runtimeOnly 'com.mysql:mysql-connector-j'
-
-    // Swagger UI 명세서 전광판 라이브러리
+    // 6. Swagger API 명세
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
-    // 테스트 모듈
+    // 7. 테스트 모듈
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
 }
 
 tasks.withType(JavaCompile) {

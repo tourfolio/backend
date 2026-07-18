@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/repository/TransactionRepository.java
 package com.tourfolio.app.repository;
 
 import com.tourfolio.app.entity.Transaction;
@@ -15,6 +16,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findBySpotIdAndCreatedAtAfterOrderByCreatedAtAsc(Long spotId, LocalDateTime dateTime);
 
+    // [중요] 서비스에서 호출하는 바로 그 메서드입니다.
     List<Transaction> findBySpotIdAndCreatedAtBetweenOrderByCreatedAtAsc(Long spotId, LocalDateTime startDate, LocalDateTime endDate);
 
     @Query("SELECT SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END) " +

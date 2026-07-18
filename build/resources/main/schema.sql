@@ -26,6 +26,7 @@ CREATE TABLE spots (
     region VARCHAR(50) NOT NULL,
     address VARCHAR(255),
     initial_price DECIMAL(19,2) NOT NULL,
+    ipo_price DECIMAL(19,2),
     current_price DECIMAL(19,2) NOT NULL,
     prev_price DECIMAL(19,2) NOT NULL,
     tourism_data_weight DECIMAL(19,2) NOT NULL,

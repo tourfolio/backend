@@ -1,12 +1,9 @@
+// src/main/java/com/tourfolio/app/domain/User.java
 package com.tourfolio.app.domain;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -30,6 +27,8 @@ public class User {
     @Column(nullable = false, length = 50)
     private String nickname;
 
+    // 빌더 사용 시 기본값(true)을 유지하기 위해 @Builder.Default 필수
+    @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
 
