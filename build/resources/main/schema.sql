@@ -4,15 +4,17 @@ DROP TABLE IF EXISTS portfolios;
 DROP TABLE IF EXISTS watchlists;
 DROP TABLE IF EXISTS price_history;
 DROP TABLE IF EXISTS spots;
-DROP TABLE IF EXISTS members;
+DROP TABLE IF EXISTS users;
 
-CREATE TABLE members (
+CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    balance DECIMAL(19,2) NOT NULL DEFAULT 1000000.00,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    nickname VARCHAR(50) NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    balance DECIMAL(19,2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE spots (
@@ -55,7 +57,7 @@ CREATE TABLE watchlists (
     member_id BIGINT NOT NULL,
     spot_id BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_watchlist_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+    CONSTRAINT fk_watchlist_member FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_watchlist_spot FOREIGN KEY (spot_id) REFERENCES spots(id) ON DELETE CASCADE,
     CONSTRAINT uq_member_watchlist UNIQUE (member_id, spot_id)
 );
@@ -67,7 +69,7 @@ CREATE TABLE portfolios (
     quantity DECIMAL(19,2) NOT NULL,
     average_purchase_price DECIMAL(19,2) NOT NULL,
     updated_at TIMESTAMP NOT NULL,
-    CONSTRAINT fk_portfolio_member FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+    CONSTRAINT fk_portfolio_member FOREIGN KEY (member_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_portfolio_spot FOREIGN KEY (spot_id) REFERENCES spots(id) ON DELETE CASCADE,
     CONSTRAINT uq_member_spot UNIQUE (member_id, spot_id)
 );
@@ -82,14 +84,14 @@ CREATE TABLE transactions (
     total_amount DECIMAL(19,2) NOT NULL,
     executed_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_transaction_member FOREIGN KEY (member_id) REFERENCES members(id),
+    CONSTRAINT fk_transaction_member FOREIGN KEY (member_id) REFERENCES users(id),
     CONSTRAINT fk_transaction_spot FOREIGN KEY (spot_id) REFERENCES spots(id)
 );
 
 -- 샘플 회원 데이터 (테스트용)
-INSERT INTO members (username, email, password, balance, created_at) VALUES
-('testuser1', 'test1@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 1000000.00, NOW()),
-('testuser2', 'test2@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 5000000.00, NOW());
+INSERT INTO users (nickname, email, password, balance, active, created_at, updated_at) VALUES
+('testuser1', 'test1@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 1000000.00, true, NOW(), NOW()),
+('testuser2', 'test2@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', 5000000.00, true, NOW(), NOW());
 
 -- 샘플 관광지 데이터 (12개)
 INSERT INTO spots (name, area_code, content_id, signgu_cd, tier, theme, region, address, initial_price, current_price, prev_price, tourism_data_weight, last_updated, created_at) VALUES

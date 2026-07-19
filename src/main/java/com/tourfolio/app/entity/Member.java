@@ -1,17 +1,13 @@
-// src/main/java/com/tourfolio/app/entity/Member.java
 package com.tourfolio.app.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "members")
+@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
@@ -22,18 +18,33 @@ public class Member {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50)
-    private String username;
-
-    @Column(nullable = false, length = 100, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
     @Column(nullable = false, length = 255)
     private String password;
 
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal balance;
+    @Column(nullable = false, length = 50)
+    private String nickname;
 
-    @Column(name = "created_at", nullable = false)
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    // 잔액(Balance) 필드
+    @Column(nullable = false, precision = 19, scale = 2)
+    @Builder.Default
+    private BigDecimal balance = BigDecimal.ZERO;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

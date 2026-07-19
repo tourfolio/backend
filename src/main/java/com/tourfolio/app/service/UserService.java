@@ -1,6 +1,6 @@
 package com.tourfolio.app.service;
 
-import com.tourfolio.app.domain.User;
+import com.tourfolio.app.entity.Member;
 import com.tourfolio.app.dto.AuthResponse;
 import com.tourfolio.app.dto.LoginRequest;
 import com.tourfolio.app.dto.SignupRequest;
@@ -41,25 +41,26 @@ public class UserService {
         }
 
         // 사용자 생성
-        User user = User.builder()
+        Member member = Member.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
                 .active(true)
+                .balance(java.math.BigDecimal.ZERO)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        User savedUser = userRepository.save(user);
-        log.info("회원가입 성공: userId={}, email={}", savedUser.getId(), savedUser.getEmail());
+        Member savedMember = userRepository.save(member);
+        log.info("회원가입 성공: userId={}, email={}", savedMember.getId(), savedMember.getEmail());
 
         // 임시 토큰 생성 (MVP 단계)
-        String token = generateTempToken(savedUser);
+        String token = generateTempToken(savedMember);
 
         return AuthResponse.builder()
-                .id(savedUser.getId())
-                .email(savedUser.getEmail())
-                .nickname(savedUser.getNickname())
+                .id(savedMember.getId())
+                .email(savedMember.getEmail())
+                .nickname(savedMember.getNickname())
                 .token(token)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -68,41 +69,41 @@ public class UserService {
     public AuthResponse login(LoginRequest request) {
         log.info("로그인 요청: email={}", request.getEmail());
 
-        User user = userRepository.findByEmail(request.getEmail())
+        Member member = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
         // 비밀번호 검증
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
             throw new InvalidCredentialsException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
         // 활성 상태 체크
-        if (!user.getActive()) {
+        if (!member.getActive()) {
             throw new InvalidCredentialsException("비활성화된 계정입니다.");
         }
 
-        log.info("로그인 성공: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("로그인 성공: userId={}, email={}", member.getId(), member.getEmail());
 
         // 임시 토큰 생성 (MVP 단계)
-        String token = generateTempToken(user);
+        String token = generateTempToken(member);
 
         return AuthResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .nickname(user.getNickname())
+                .id(member.getId())
+                .email(member.getEmail())
+                .nickname(member.getNickname())
                 .token(token)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
 
-    public User getUserById(Long id) {
+    public Member getUserById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("사용자를 찾을 수 없습니다: " + id));
     }
 
-    private String generateTempToken(User user) {
+    private String generateTempToken(Member member) {
         // MVP 단계에서는 UUID 기반 임시 토큰 사용
         // 실제 프로덕션에서는 JWT 등을 사용해야 함
-        return "TOKEN_" + UUID.randomUUID().toString().replace("-", "") + "_" + user.getId();
+        return "TOKEN_" + UUID.randomUUID().toString().replace("-", "") + "_" + member.getId();
     }
 }

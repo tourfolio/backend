@@ -14,7 +14,8 @@ import java.util.List;
 @Configuration
 public class SwaggerConfig {
 
-    @Value("${swagger.server-url:http://localhost:8000}")
+    // 수정: 기본값을 localhost:8000에서 실제 도메인 http://tourfolio.kr 로 변경
+    @Value("${swagger.server-url:http://tourfolio.kr}")
     private String swaggerServerUrl;
 
     @Bean

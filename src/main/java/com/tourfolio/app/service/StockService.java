@@ -122,7 +122,7 @@ public class StockService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", member.getUsername(), type, spot.getName(), request.getQuantity(), spot.getCurrentPrice());
+        log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", member.getNickname(), type, spot.getName(), request.getQuantity(), spot.getCurrentPrice());
         return transactionRepository.save(transaction);
     }
 
@@ -191,7 +191,7 @@ public class StockService {
 
         return MemberAssetResponse.builder()
                 .memberId(member.getId())
-                .username(member.getUsername())
+                .username(member.getNickname())
                 .cashBalance(member.getBalance())
                 .totalStockValue(totalStockValue)
                 .totalAssetValue(totalAssetValue)
