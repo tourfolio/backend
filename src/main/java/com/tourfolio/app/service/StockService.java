@@ -60,6 +60,7 @@ public class StockService {
         if (request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
             throw new CustomException("INVALID_QUANTITY", "거래 수량은 0보다 커야 합니다.");
         }
+        System.out.println("========== 디버깅: 찾으려는 ID는 " + request.getMemberId() + " 입니다 ==========");
 
         BigDecimal totalAmount = spot.getCurrentPrice().multiply(request.getQuantity()).setScale(2, RoundingMode.HALF_UP);
 
