@@ -32,31 +32,36 @@ public class TourfolioApplication implements CommandLineRunner {
     }
 
     private void initializeMasterData() {
-        // 실제 운영에 사용할 데이터 셋 (AreaCode: KOSTAT 표준, SignguCd: 공공데이터 API용)
         List<Spot> spots = List.of(
-                createSpot("경복궁", "11", "11110", "126508", 1, "10000"),
-                createSpot("성산일출봉", "50", "50130", "126435", 1, "10000"),
-                createSpot("해운대해수욕장", "26", "26350", "126078", 1, "10000"),
-                createSpot("광안리해수욕장", "26", "26500", "126078", 2, "5000"),
-                createSpot("전주한옥마을", "52", "52111", "130456", 2, "5000"),
-                createSpot("경주불국사", "47", "47130", "126512", 2, "5000"),
-                createSpot("통영케이블카", "48", "48220", "567890", 3, "2000"),
-                createSpot("순천만국가정원", "46", "46150", "678901", 3, "2000")
+                createSpot("경복궁", "11", "11110", "126508", 1, "10000", "서울", "역사"),
+                createSpot("성산일출봉", "50", "50130", "126435", 1, "10000", "제주", "자연"),
+                createSpot("전주한옥마을", "52", "52111", "130456", 2, "5000", "전북", "문화"),
+                createSpot("남산서울타워", "11", "11140", "126487", 1, "10000", "서울", "레저"),
+                createSpot("지리산 천왕봉", "48", "48240", "126543", 1, "10000", "경남", "자연"),
+                createSpot("순천만국가정원", "46", "46150", "678901", 3, "2000", "전남", "자연"),
+                createSpot("통영케이블카", "48", "48220", "567890", 3, "2000", "경남", "레저"),
+                createSpot("해운대해수욕장", "26", "26350", "126078", 1, "10000", "부산", "레저"),
+                createSpot("광안리해수욕장", "26", "26500", "126078", 2, "5000", "부산", "레저"),
+                createSpot("경주 불국사", "47", "47130", "126512", 2, "5000", "경북", "역사")
         );
         spotRepository.saveAll(spots);
         log.info("✅ 마스터 데이터 삽입 완료!");
     }
 
-    private Spot createSpot(String name, String areaCode, String signguCd, String contentId, int tier, String basePrice) {
+    private Spot createSpot(String name, String areaCode, String signguCd, String contentId, int tier, String basePrice, String region, String theme) {
         BigDecimal initialPrice = new BigDecimal(basePrice);
         return Spot.builder()
                 .name(name)
                 .areaCode(areaCode)
-                .signguCd(signguCd) // 중요: 실제 API 호출에 사용
+                .signguCd(signguCd)
                 .contentId(contentId)
                 .tier(tier)
+                .region(region)
+                .theme(theme)
                 .currentPrice(initialPrice)
                 .prevPrice(initialPrice)
+                .initialPrice(initialPrice)
+                .ipoPrice(initialPrice)
                 .tourismDataWeight(BigDecimal.ZERO)
                 .lastUpdated(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
