@@ -366,24 +366,6 @@ public class StockService {
         return todayScore.subtract(yesterdayScore).divide(yesterdayScore, 4, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal calculateUserTradingScore(Spot spot, LocalDateTime startTime) {
-        List<Transaction> recentTransactions = transactionRepository.findBySpotIdAndCreatedAtAfterOrderByCreatedAtAsc(spot.getId(), startTime);
-        if (recentTransactions.isEmpty()) return BigDecimal.ZERO;
-
-        BigDecimal buyVolume = BigDecimal.ZERO;
-        BigDecimal sellVolume = BigDecimal.ZERO;
-
-        for (Transaction tx : recentTransactions) {
-            if ("BUY".equals(tx.getType())) buyVolume = buyVolume.add(tx.getQuantity());
-            else if ("SELL".equals(tx.getType())) sellVolume = sellVolume.add(tx.getQuantity());
-        }
-
-        BigDecimal totalVolume = buyVolume.add(sellVolume);
-        if (totalVolume.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
-
-        return buyVolume.subtract(sellVolume).divide(totalVolume, 4, RoundingMode.HALF_UP);
-    }
-
     // US(User Sentiment) = (매수량 - 매도량) / 전체거래량 (최근 하루치)
     private BigDecimal calculateUserSentiment(Spot spot, LocalDateTime startTime) {
         List<Transaction> recentTransactions = transactionRepository.findBySpotIdAndCreatedAtAfterOrderByCreatedAtAsc(spot.getId(), startTime);

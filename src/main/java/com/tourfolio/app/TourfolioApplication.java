@@ -41,9 +41,7 @@ public class TourfolioApplication implements CommandLineRunner {
                 createSpot("전주한옥마을", "52", "52111", "130456", 2, "5000"),
                 createSpot("경주불국사", "47", "47130", "126512", 2, "5000"),
                 createSpot("통영케이블카", "48", "48220", "567890", 3, "2000"),
-                createSpot("순천만국가정원", "46", "46150", "678901", 3, "2000"),
-                createSpot("지리산 천왕봉", "48", "48240", "999999", 4, "1000"),
-                createSpot("남산서울타워", "11", "11140", "888888", 4, "1000")
+                createSpot("순천만국가정원", "46", "46150", "678901", 3, "2000")
         );
         spotRepository.saveAll(spots);
         log.info("✅ 마스터 데이터 삽입 완료!");

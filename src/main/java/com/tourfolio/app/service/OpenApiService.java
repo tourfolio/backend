@@ -10,7 +10,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
-import java.util.Random;
 
 @Service
 @Slf4j
@@ -19,7 +18,6 @@ public class OpenApiService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final String SERVICE_KEY = "9gW0r4tl6Md49Aj9LDANE3in2AU8Flq7n%2BR%2F4GTTeYn5lukUig9L8VpQprv%2B3XNhbLJmtGkOYtydXle35DQG8A%3D%3D";
-    private final Random random = new Random();
 
     // 한국관광공사 API 엔드포인트
     private static final String API_BASE_URL = "http://api.visitkorea.or.kr/openapi/service/rest/KorService";
@@ -87,6 +85,11 @@ public class OpenApiService {
             log.error("지역기반 관광지 목록 조회 실패: {}", e.getMessage());
             throw new RuntimeException("관광지 목록 조회 실패", e);
         }
+    }
+
+    public BigDecimal calculateFallbackTourismScore(String theme, String region) {
+        log.warn("기본 점수 계산 메서드 호출됨: theme={}, region={}", theme, region);
+        return BigDecimal.ZERO;
     }
 
     public String fetchDetailInfo(String contentId) {
@@ -181,17 +184,17 @@ public class OpenApiService {
         return score;
     }
 
-    // 상하한가 ±30% Clamp 로직 (기획서 기반)
-    public BigDecimal applyPriceLimit(BigDecimal changeRate) {
-        BigDecimal maxChange = BigDecimal.valueOf(0.30);
-        BigDecimal minChange = BigDecimal.valueOf(-0.30);
+    // 상하한가 ±10% Clamp 로직
+    public BigDecimal applyPriceLimit10Percent(BigDecimal changeRate) {
+        BigDecimal maxChange = BigDecimal.valueOf(0.10);
+        BigDecimal minChange = BigDecimal.valueOf(-0.10);
         
         if (changeRate.compareTo(maxChange) > 0) {
-            log.debug("상한가 30% 도달로 변동률 제한: 원본={}, 제한={}", changeRate, maxChange);
+            log.debug("상한가 10% 도달로 변동률 제한: 원본={}, 제한={}", changeRate, maxChange);
             return maxChange;
         }
         if (changeRate.compareTo(minChange) < 0) {
-            log.debug("하한가 30% 도달로 변동률 제한: 원본={}, 제한={}", changeRate, minChange);
+            log.debug("하한가 10% 도달로 변동률 제한: 원본={}, 제한={}", changeRate, minChange);
             return minChange;
         }
         return changeRate;
@@ -247,155 +250,4 @@ public class OpenApiService {
         return item.isArray() ? item : objectMapper.createArrayNode().add(item);
     }
 
-    // Fallback: 테마/지역 기반 현실적인 임의 데이터 생성 (API 실패 시 주가 붕괴 방어)
-    public BigDecimal generateFallbackPopularity(String theme) {
-        double min, max;
-        switch (theme) {
-            case "역사":
-                min = 40.0; max = 85.0;
-                break;
-            case "자연":
-                min = 35.0; max = 80.0;
-                break;
-            case "문화":
-                min = 45.0; max = 90.0;
-                break;
-            case "레저":
-                min = 50.0; max = 95.0;
-                break;
-            default:
-                min = 30.0; max = 75.0;
-                break;
-        }
-        double value = min + random.nextDouble() * (max - min);
-        log.warn("API 실패로 Fallback 인기 지표 생성: theme={}, value={}", theme, String.format("%.2f", value));
-        return BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    public BigDecimal generateFallbackStayDuration(String theme) {
-        double min, max;
-        switch (theme) {
-            case "역사":
-                min = 80.0; max = 120.0;
-                break;
-            case "자연":
-                min = 90.0; max = 140.0;
-                break;
-            case "문화":
-                min = 70.0; max = 110.0;
-                break;
-            case "레저":
-                min = 100.0; max = 150.0;
-                break;
-            default:
-                min = 65.0; max = 115.0;
-                break;
-        }
-        double value = min + random.nextDouble() * (max - min);
-        log.warn("API 실패로 Fallback 체류 시간 생성: theme={}, value={}", theme, String.format("%.2f", value));
-        return BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    public BigDecimal generateFallbackSpending(String region) {
-        double min, max;
-        switch (region) {
-            case "서울":
-                min = 80.0; max = 140.0;
-                break;
-            case "부산":
-                min = 70.0; max = 120.0;
-                break;
-            case "제주":
-                min = 90.0; max = 145.0;
-                break;
-            case "강원":
-                min = 65.0; max = 110.0;
-                break;
-            case "경북":
-                min = 60.0; max = 105.0;
-                break;
-            case "전남":
-                min = 55.0; max = 100.0;
-                break;
-            case "경남":
-                min = 60.0; max = 108.0;
-                break;
-            default:
-                min = 58.0; max = 115.0;
-                break;
-        }
-        double value = min + random.nextDouble() * (max - min);
-        log.warn("API 실패로 Fallback 소비 금액 생성: region={}, value={}", region, String.format("%.2f", value));
-        return BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    public BigDecimal generateFallbackServiceQuality(String theme) {
-        double min, max;
-        switch (theme) {
-            case "역사":
-                min = 75.0; max = 130.0;
-                break;
-            case "자연":
-                min = 70.0; max = 125.0;
-                break;
-            case "문화":
-                min = 80.0; max = 140.0;
-                break;
-            case "레저":
-                min = 85.0; max = 145.0;
-                break;
-            default:
-                min = 68.0; max = 120.0;
-                break;
-        }
-        double value = min + random.nextDouble() * (max - min);
-        log.warn("API 실패로 Fallback 서비스 품질 생성: theme={}, value={}", theme, String.format("%.2f", value));
-        return BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    public BigDecimal generateFallbackCultureIndex(String theme) {
-        double min, max;
-        switch (theme) {
-            case "역사":
-                min = 85.0; max = 130.0;
-                break;
-            case "자연":
-                min = 70.0; max = 115.0;
-                break;
-            case "문화":
-                min = 90.0; max = 135.0;
-                break;
-            case "레저":
-                min = 65.0; max = 110.0;
-                break;
-            default:
-                min = 70.0; max = 120.0;
-                break;
-        }
-        double value = min + random.nextDouble() * (max - min);
-        log.warn("API 실패로 Fallback 문화 지수 생성: theme={}, value={}", theme, String.format("%.2f", value));
-        return BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    // 통합 Fallback 점수 계산 (테마/지역 기반)
-    public BigDecimal calculateFallbackTourismScore(String theme, String region) {
-        BigDecimal popularity = generateFallbackPopularity(theme);
-        BigDecimal stayDuration = generateFallbackStayDuration(theme);
-        BigDecimal spending = generateFallbackSpending(region);
-        BigDecimal serviceQuality = generateFallbackServiceQuality(theme);
-        BigDecimal cultureIndex = generateFallbackCultureIndex(theme);
-
-        BigDecimal pNormalized = normalizePopularity(popularity);
-        BigDecimal dStayNormalized = normalizeStayDuration(stayDuration);
-        BigDecimal dSpendNormalized = normalizeSpending(spending);
-        BigDecimal rServiceNormalized = normalizeServiceQuality(serviceQuality);
-        BigDecimal rCultureNormalized = normalizeCultureIndex(cultureIndex);
-
-        BigDecimal dNormalized = dStayNormalized.add(dSpendNormalized).divide(BigDecimal.valueOf(2), 4, java.math.RoundingMode.HALF_UP);
-        BigDecimal rNormalized = rServiceNormalized.add(rCultureNormalized).divide(BigDecimal.valueOf(2), 4, java.math.RoundingMode.HALF_UP);
-
-        BigDecimal score = calculateTourismScore(pNormalized, dNormalized, rNormalized);
-        log.info("Fallback 관광지 점수 계산 완료: theme={}, region={}, score={}", theme, region, score);
-        return score;
-    }
 }

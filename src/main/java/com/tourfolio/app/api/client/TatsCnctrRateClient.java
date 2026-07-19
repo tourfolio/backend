@@ -42,7 +42,7 @@ public class TatsCnctrRateClient {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/B551011/TatsCnctrRateService/tatsCnctrRatedList")
                     .queryParam("serviceKey", serviceKey)
                     .queryParam("pageNo", "1")
-                    .queryParam("numOfRows", "30")
+                    .queryParam("numOfRows", "10")
                     .queryParam("MobileOS", "ETC")
                     .queryParam("MobileApp", "Tourfolio")
                     .queryParam("areaCd", areaCd)
