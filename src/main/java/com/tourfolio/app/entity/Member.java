@@ -31,9 +31,9 @@ public class Member {
     @Column(nullable = false)
     private Boolean active = true;
 
-    // 잔액(Balance) 필드
-    @Column(nullable = false, precision = 19, scale = 2)
+    // 초기값을 설정하여 Builder.Default 에러 해결
     @Builder.Default
+    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance = BigDecimal.ZERO;
 
     @CreationTimestamp
