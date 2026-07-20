@@ -28,8 +28,8 @@ import java.util.Map;
 @RequestMapping("/api/v1/debug/indicators")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Debug Indicators", description = "공공데이터 원본 디버깅용 API")
-public class DebugController {
+@Tag(name = "Debug Indicators", description = "데이터 정합성 검증용 디버깅 API")
+public class IndicatorDebugController {
 
     private final TatsCnctrRateClient tatsCnctrRateClient;
     private final AreaTarDemDsClient areaTarDemDsClient;
@@ -39,14 +39,16 @@ public class DebugController {
     @GetMapping("/concentration")
     @Operation(summary = "집중률 예측(P) Raw 데이터 조회", description = "관광지 집중률 예측 데이터를 원본 형태로 조회합니다.")
     public ResponseEntity<DebugResponse<List<TatsCnctrRateDto>>> getConcentrationData(
-            @Parameter(description = "지역 코드 (예: 1=서울, 6=제주)") @RequestParam(defaultValue = "1") String areaCd,
-            @Parameter(description = "시군구 코드 (예: 11110=종로구)") @RequestParam(defaultValue = "11110") String signguCd,
-            @Parameter(description = "관광지 이름") @RequestParam(defaultValue = "경복궁") String tAtsNm) {
+            @Parameter(description = "관광지 이름") @RequestParam String spotName) {
         
-        log.info("디버깅: 집중률 예측 데이터 조회 - areaCd={}, signguCd={}, tAtsNm={}", areaCd, signguCd, tAtsNm);
+        log.info("디버깅: 집중률 예측 데이터 조회 - spotName={}", spotName);
         
         try {
-            List<TatsCnctrRateDto> data = tatsCnctrRateClient.fetchPredictions(areaCd, signguCd, tAtsNm);
+            // 기본값으로 서울 종로구 경복궁 설정
+            String areaCd = "1";
+            String signguCd = "11110";
+            
+            List<TatsCnctrRateDto> data = tatsCnctrRateClient.fetchPredictions(areaCd, signguCd, spotName);
             log.info("디버깅: 집중률 예측 데이터 조회 성공 - 데이터 수: {}", data.size());
             
             return ResponseEntity.ok(
@@ -55,9 +57,9 @@ public class DebugController {
                     .message("집중률 예측 데이터 조회 성공")
                     .data(data)
                     .metadata(Map.of(
+                        "spotName", spotName,
                         "areaCd", areaCd,
                         "signguCd", signguCd,
-                        "tAtsNm", tAtsNm,
                         "count", data.size()
                     ))
                     .build()
@@ -77,14 +79,14 @@ public class DebugController {
     @GetMapping("/demand-intensity")
     @Operation(summary = "수요 강도(D) Raw 데이터 조회", description = "지역별 관광 수요 강도(체류/소비) 데이터를 원본 형태로 조회합니다.")
     public ResponseEntity<DebugResponse<Map<String, List<AreaTarDemDsDto>>>> getDemandIntensityData(
-            @Parameter(description = "지역 코드 (예: 1=서울, 6=제주)") @RequestParam(defaultValue = "1") String areaCd,
-            @Parameter(description = "시군구 코드 (예: 11110=종로구)") @RequestParam(defaultValue = "11110") String signguCd) {
+            @Parameter(description = "지역 코드 (예: 11=서울)") @RequestParam String areaCode,
+            @Parameter(description = "시군구 코드 (예: 11110=종로구)") @RequestParam String signguCode) {
         
-        log.info("디버깅: 수요 강도 데이터 조회 - areaCd={}, signguCd={}", areaCd, signguCd);
+        log.info("디버깅: 수요 강도 데이터 조회 - areaCode={}, signguCode={}", areaCode, signguCode);
         
         try {
-            List<AreaTarDemDsDto> stayIntensity = areaTarDemDsClient.fetchStayIntensity(areaCd, signguCd);
-            List<AreaTarDemDsDto> spendIntensity = areaTarDemDsClient.fetchSpendIntensity(areaCd, signguCd);
+            List<AreaTarDemDsDto> stayIntensity = areaTarDemDsClient.fetchStayIntensity(areaCode, signguCode);
+            List<AreaTarDemDsDto> spendIntensity = areaTarDemDsClient.fetchSpendIntensity(areaCode, signguCode);
             
             log.info("디버깅: 수요 강도 데이터 조회 성공 - 체류: {}, 소비: {}", stayIntensity.size(), spendIntensity.size());
             
@@ -97,8 +99,8 @@ public class DebugController {
                         "spendIntensity", spendIntensity
                     ))
                     .metadata(Map.of(
-                        "areaCd", areaCd,
-                        "signguCd", signguCd,
+                        "areaCode", areaCode,
+                        "signguCode", signguCode,
                         "stayIntensityCount", stayIntensity.size(),
                         "spendIntensityCount", spendIntensity.size()
                     ))
@@ -119,14 +121,14 @@ public class DebugController {
     @GetMapping("/resource-demand")
     @Operation(summary = "자원 수요(R) Raw 데이터 조회", description = "지역별 관광 자원 수요(서비스/문화) 데이터를 원본 형태로 조회합니다.")
     public ResponseEntity<DebugResponse<Map<String, List<AreaTarResDemDto>>>> getResourceDemandData(
-            @Parameter(description = "지역 코드 (예: 1=서울, 6=제주)") @RequestParam(defaultValue = "1") String areaCd,
-            @Parameter(description = "시군구 코드 (예: 11110=종로구)") @RequestParam(defaultValue = "11110") String signguCd) {
+            @Parameter(description = "지역 코드 (예: 11=서울)") @RequestParam String areaCode,
+            @Parameter(description = "시군구 코드 (예: 11110=종로구)") @RequestParam String signguCode) {
         
-        log.info("디버깅: 자원 수요 데이터 조회 - areaCd={}, signguCd={}", areaCd, signguCd);
+        log.info("디버깅: 자원 수요 데이터 조회 - areaCode={}, signguCode={}", areaCode, signguCode);
         
         try {
-            List<AreaTarResDemDto> serviceDemand = areaTarResDemClient.fetchServiceDemand(areaCd, signguCd);
-            List<AreaTarResDemDto> cultureDemand = areaTarResDemClient.fetchCultureDemand(areaCd, signguCd);
+            List<AreaTarResDemDto> serviceDemand = areaTarResDemClient.fetchServiceDemand(areaCode, signguCode);
+            List<AreaTarResDemDto> cultureDemand = areaTarResDemClient.fetchCultureDemand(areaCode, signguCode);
             
             log.info("디버깅: 자원 수요 데이터 조회 성공 - 서비스: {}, 문화: {}", serviceDemand.size(), cultureDemand.size());
             
@@ -139,8 +141,8 @@ public class DebugController {
                         "cultureDemand", cultureDemand
                     ))
                     .metadata(Map.of(
-                        "areaCd", areaCd,
-                        "signguCd", signguCd,
+                        "areaCode", areaCode,
+                        "signguCode", signguCode,
                         "serviceDemandCount", serviceDemand.size(),
                         "cultureDemandCount", cultureDemand.size()
                     ))
@@ -161,19 +163,17 @@ public class DebugController {
     @GetMapping("/visitor-count")
     @Operation(summary = "방문자수(S) Raw 데이터 조회", description = "광역 지자체 지역방문자수 빅데이터를 원본 형태로 조회합니다.")
     public ResponseEntity<DebugResponse<List<DataLabDto>>> getVisitorCountData(
-            @Parameter(description = "지역 코드 (예: 1=서울, 6=제주)") @RequestParam(defaultValue = "1") String areaCd,
-            @Parameter(description = "조회 시작일 (yyyyMMdd, 기본: 30일 전)") @RequestParam(required = false) String startDate,
-            @Parameter(description = "조회 종료일 (yyyyMMdd, 기본: 오늘)") @RequestParam(required = false) String endDate) {
+            @Parameter(description = "지역 코드 (예: 11=서울)") @RequestParam String areaCode,
+            @Parameter(description = "관광 구분 코드 (2=외지인)") @RequestParam(defaultValue = "2") String touDivCd) {
         
-        LocalDate start = startDate != null ? LocalDate.parse(startDate, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")) 
-                                            : LocalDate.now().minusDays(30);
-        LocalDate end = endDate != null ? LocalDate.parse(endDate, java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd")) 
-                                        : LocalDate.now();
-        
-        log.info("디버깅: 방문자수 데이터 조회 - areaCd={}, startDate={}, endDate={}", areaCd, start, end);
+        log.info("디버깅: 방문자수 데이터 조회 - areaCode={}, touDivCd={}", areaCode, touDivCd);
         
         try {
-            List<DataLabDto> data = dataLabClient.fetchVisitorCounts(areaCd, start, end);
+            // 기본값: 최근 30일 데이터 조회
+            LocalDate endDate = LocalDate.now().minusDays(1);
+            LocalDate startDate = endDate.minusDays(29);
+            
+            List<DataLabDto> data = dataLabClient.fetchVisitorCounts(areaCode, startDate, endDate);
             log.info("디버깅: 방문자수 데이터 조회 성공 - 데이터 수: {}", data.size());
             
             return ResponseEntity.ok(
@@ -182,9 +182,10 @@ public class DebugController {
                     .message("방문자수 데이터 조회 성공")
                     .data(data)
                     .metadata(Map.of(
-                        "areaCd", areaCd,
-                        "startDate", start.toString(),
-                        "endDate", end.toString(),
+                        "areaCode", areaCode,
+                        "touDivCd", touDivCd,
+                        "startDate", startDate.toString(),
+                        "endDate", endDate.toString(),
                         "count", data.size()
                     ))
                     .build()
@@ -194,7 +195,7 @@ public class DebugController {
             return ResponseEntity.status(500).body(
                 DebugResponse.<List<DataLabDto>>builder()
                     .success(false)
-                    .message("방문자수 데이터 조회 실패: " + e.getMessage())
+                    .message("방문자수��이터 조회 실패: " + e.getMessage())
                     .data(List.of())
                     .build()
             );
