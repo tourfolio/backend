@@ -21,17 +21,19 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional(readOnly = true) // 읽기 전용으로 기본 설정
+@Transactional(readOnly = true)
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AttendanceRepository attendanceRepository;
 
-    // 1. 회원가입: 축하 포인트 지급 포함
+    // 1. 회원가입: 축하 포인트 50,000 지급
     @Transactional
     public AuthResponse signup(SignupRequest request) {
-        log.info("회원가입 처리 시작: email={}", request.getEmail());
+        log.info("========== 회원가입 처리 시작 ==========");
+        log.info("요청 이메일: {}", request.getEmail());
+        log.info("요청 닉네임: {}", request.getNickname());
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateEmailException("이미 가입된 이메일입니다.");
@@ -40,19 +42,28 @@ public class UserService {
             throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
         }
 
-        // 회원 생성 (축하 포인트 50,000 고정)
+        // 회원 생성 (축하 포인트 50,000)
+        BigDecimal signupBonus = new BigDecimal("50000");
+        log.info("지급할 축하 포인트: {}", signupBonus);
+
         Member member = Member.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .nickname(request.getNickname())
                 .active(true)
-                .balance(new BigDecimal("50000"))
+                .balance(signupBonus)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
+        log.info("빌더 생성 후 balance 값: {}", member.getBalance());
+
         Member savedMember = userRepository.save(member);
-        log.info("회원가입 성공: userId={}", savedMember.getId());
+        
+        log.info("========== 저장 후 확인 ==========");
+        log.info("저장된 회원 ID: {}", savedMember.getId());
+        log.info("저장된 잔액: {}", savedMember.getBalance());
+        log.info("회원가입 성공: userId={}, 지급 잔액={}", savedMember.getId(), savedMember.getBalance());
 
         return createAuthResponse(savedMember);
     }
@@ -60,6 +71,8 @@ public class UserService {
     // 2. 로그인: 출석체크 로직 연동
     @Transactional
     public AuthResponse login(LoginRequest request) {
+        log.info("로그인 요청: email={}", request.getEmail());
+
         Member member = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new InvalidCredentialsException("로그인 정보가 올바르지 않습니다."));
 
@@ -69,6 +82,8 @@ public class UserService {
         if (!member.getActive()) {
             throw new InvalidCredentialsException("비활성화된 계정입니다.");
         }
+
+        log.info("로그인 성공: memberId={}, 현재 잔액={}", member.getId(), member.getBalance());
 
         // 출석체크 수행
         checkAndAwardAttendance(member);
@@ -82,10 +97,13 @@ public class UserService {
                 ? now.toLocalDate().minusDays(1).atTime(10, 0)
                 : now.toLocalDate().atTime(10, 0);
 
+        log.debug("출석체크 기준 시간: {}", threshold);
+
         boolean alreadyAttended = attendanceRepository.existsByMemberIdAndAttendanceDateAfter(member.getId(), threshold);
 
         if (!alreadyAttended) {
-            member.setBalance(member.getBalance().add(new BigDecimal("1000")));
+            BigDecimal attendanceBonus = new BigDecimal("1000");
+            member.setBalance(member.getBalance().add(attendanceBonus));
             userRepository.save(member);
 
             attendanceRepository.save(Attendance.builder()
@@ -93,7 +111,9 @@ public class UserService {
                     .attendanceDate(now)
                     .pointsAwarded(1000)
                     .build());
-            log.info("출석 포인트 지급 완료: memberId={}, 지급액=1000", member.getId());
+            log.info("출석 포인트 지급 완료: memberId={}, 지급액=1000, 현재잔액={}", member.getId(), member.getBalance());
+        } else {
+            log.debug("이미 출석 완료: memberId={}", member.getId());
         }
     }
 

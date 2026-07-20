@@ -31,10 +31,9 @@ public class Member {
     @Column(nullable = false)
     private Boolean active = true;
 
-    // 초기값을 설정하여 Builder.Default 에러 해결
-    @Builder.Default
+    // @Builder.Default 제거: 빌더 패턴에서 명시적 설정이 무시되는 문제 해결
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal balance = BigDecimal.ZERO;
+    private BigDecimal balance;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -42,6 +41,16 @@ public class Member {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.balance == null) {
+            this.balance = BigDecimal.ZERO;
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
 
     @PreUpdate
     public void preUpdate() {
