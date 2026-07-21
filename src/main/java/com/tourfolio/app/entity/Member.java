@@ -42,6 +42,13 @@ public class Member {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // 소셜 로그인 관련 필드
+    @Column(length = 20)
+    private String provider; // KAKAO, GOOGLE, NAVER 등
+
+    @Column(length = 100)
+    private String providerId; // 소셜 플랫폼에서 제공하는 고유 ID
+
     @PrePersist
     public void prePersist() {
         if (this.balance == null) {

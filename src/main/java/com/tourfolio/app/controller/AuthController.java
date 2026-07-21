@@ -1,10 +1,14 @@
 package com.tourfolio.app.controller;
 
 import com.tourfolio.app.dto.AuthResponse;
+import com.tourfolio.app.dto.KakaoAuthRequest;
 import com.tourfolio.app.dto.LoginRequest;
 import com.tourfolio.app.dto.SignupRequest;
+import com.tourfolio.app.dto.SocialAuthResponse;
+import com.tourfolio.app.service.KakaoAuthService;
 import com.tourfolio.app.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
+    private final KakaoAuthService kakaoAuthService;
 
     @PostMapping("/signup")
     @Operation(summary = "회원가입", description = "새로운 사용자 계정을 생성합니다.")
@@ -49,6 +54,19 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("로그인 요청: email={}", request.getEmail());
         AuthResponse response = userService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/kakao")
+    @Operation(summary = "카카오 소셜 로그인", description = "카카오 인가 코드를 사용하여 소셜 로그인을 수행합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "소셜 로그인 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 인가 코드"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "카카오 API 호출 실패")
+    })
+    public ResponseEntity<SocialAuthResponse> kakaoLogin(@Valid @RequestBody KakaoAuthRequest request) {
+        log.info("카카오 소셜 로그인 요청: code={}", request.getCode());
+        SocialAuthResponse response = kakaoAuthService.kakaoLogin(request.getCode());
         return ResponseEntity.ok(response);
     }
 }

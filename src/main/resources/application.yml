@@ -42,6 +42,10 @@ endpoint:
   visitor: ${ENDPOINT_VISITOR:https://apis.data.go.kr/B551011/DataLabService}
   forecast: ${ENDPOINT_FORECAST:https://apis.data.go.kr/B551011/TatsCnctrRateService}
 
+kakao:
+  client-id: ${KAKAO_CLIENT_ID:}
+  redirect-uri: ${KAKAO_REDIRECT_URI:http://100.30.180.234:8000/api/v1/auth/kakao/callback}
+
 logging:
   level:
     root: INFO

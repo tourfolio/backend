@@ -6,6 +6,7 @@ import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
 
@@ -13,8 +14,9 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
- * WebClient 설정
+ * WebClient 및 RestTemplate 설정
  * 공공데이터포털 API 호출용 WebClient Bean 설정
+ * 소셜 로그인 API 호출용 RestTemplate Bean 설정
  */
 @Configuration
 public class WebClientConfig {
@@ -30,5 +32,10 @@ public class WebClientConfig {
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient));
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
