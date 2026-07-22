@@ -25,7 +25,7 @@ server:
   port: ${SERVER_PORT:8000}
 
 swagger:
-  server-url: ${SWAGGER_SERVER_URL:http://localhost:8000}
+  server-url: ${SWAGGER_SERVER_URL:https://tourfolio.kr}
 
 openapi:
   service:
