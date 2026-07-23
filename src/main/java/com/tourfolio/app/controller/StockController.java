@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -89,11 +88,5 @@ public class StockController {
             @RequestParam(required = false, defaultValue = "profit_rate") String sort) {
         log.info("GET /api/portfolio - 유저 포트폴리오 자산 스크리너 조회 ID: {}, sort={}", memberId, sort);
         return ResponseEntity.ok(stockService.getMemberAssets(memberId, sort));
-    }
-
-    @GetMapping("/stocks/test-api")
-    @Operation(summary = "관광 데이터 지표 테스트", description = "특정 종목의 관광 데이터 점수와 테스트 정보를 조회합니다.")
-    public ResponseEntity<Map<String, Object>> testOpenApiMetrics(@RequestParam Long spotId) {
-        return ResponseEntity.ok(stockService.testOpenApiMetrics(spotId));
     }
 }

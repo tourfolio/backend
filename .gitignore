@@ -1,40 +1,22 @@
 # Gradle
 .gradle/
 build/
+out/
 !gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
 
 # IDE
 .idea/
 *.iml
-*.iws
-*.ipr
 .vscode/
-.settings/
-.classpath
-.project
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Spring Boot
+# Logs
 *.log
 logs/
 
-# Environment Variables
-.env
-.env.local
-.env.*.local
+# Secrets
 *.pem
-
-# Docker
-docker-compose.override.yml
-tourfolio*.tar.gz
-
-# Temporary files
-*.tmp
-*.temp
-*.swp
-*~
+.env

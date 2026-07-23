@@ -3,14 +3,16 @@ package com.tourfolio.app.api.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-/**
- * P (관광지 집중률 예측) API 응답 DTO
- * API: GET https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList
- */
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
 @Data
 public class TatsCnctrRateDto {
-    @JsonProperty("tAtsNm")
-    private String tAtsNm;
+
+    private static final DateTimeFormatter YMD = DateTimeFormatter.ofPattern("yyyyMMdd");
+
+    @JsonProperty("baseYmd")
+    private String baseYmd;
 
     @JsonProperty("areaCd")
     private String areaCd;
@@ -18,22 +20,32 @@ public class TatsCnctrRateDto {
     @JsonProperty("signguCd")
     private String signguCd;
 
-    @JsonProperty("tAtsCnctrRate")
-    private String tAtsCnctrRate;
+    @JsonProperty("tAtsNm")
+    private String tAtsNm;
 
-    @JsonProperty("baseYm")
-    private String baseYm;
+    @JsonProperty("cnctrRate")
+    private String cnctrRate;
 
-    @JsonProperty("tAtsCnctrRate30")
-    private String tAtsCnctrRate30;
-
+    /** 집중률 예측값 (피크 대비 상대값 0~100) */
     public Double getPredictedValue() {
         try {
-            if (tAtsCnctrRate != null && !tAtsCnctrRate.isEmpty()) {
-                return Double.parseDouble(tAtsCnctrRate);
+            if (cnctrRate != null && !cnctrRate.isEmpty()) {
+                return Double.parseDouble(cnctrRate);
             }
         } catch (NumberFormatException e) {
-            // ignore
+            // 파싱 불가 시 null 처리하여 상위에서 건너뛰게 한다
+        }
+        return null;
+    }
+
+    /** 예측 대상 일자 */
+    public LocalDate getBaseDate() {
+        try {
+            if (baseYmd != null && baseYmd.length() == 8) {
+                return LocalDate.parse(baseYmd, YMD);
+            }
+        } catch (Exception e) {
+            // 파싱 불가 시 null
         }
         return null;
     }

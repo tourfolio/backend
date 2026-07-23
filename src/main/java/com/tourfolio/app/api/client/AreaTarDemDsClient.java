@@ -2,6 +2,7 @@ package com.tourfolio.app.api.client;
 
 import com.tourfolio.app.api.PublicApiResponse;
 import com.tourfolio.app.api.dto.AreaTarDemDsDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -10,11 +11,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 
-/**
- * D (지역별 관광 수요 강도) API 클라이언트
- * API 1: GET https://apis.data.go.kr/B551011/AreaTarDemDsService/areaTarSjrnDsList (관광 체류 강도)
- * API 2: GET https://apis.data.go.kr/B551011/AreaTarDemDsService/areaTarExpDsList (관광 소비 강도)
- */
+@Slf4j
 @Component
 public class AreaTarDemDsClient {
 
@@ -37,7 +34,7 @@ public class AreaTarDemDsClient {
      * @param signguCd 시군구 코드
      * @return 체류 강도 데이터 리스트
      */
-    public List<AreaTarDemDsDto> fetchStayIntensity(String areaCd, String signguCd) {
+    public List<AreaTarDemDsDto> fetchStayIntensity(String areaCd, String signguCd, String baseYm) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/B551011/AreaTarDemDsService/areaTarSjrnDsList")
                     .queryParam("serviceKey", serviceKey)
@@ -47,13 +44,14 @@ public class AreaTarDemDsClient {
                     .queryParam("MobileApp", "Tourfolio")
                     .queryParam("areaCd", areaCd)
                     .queryParam("signguCd", signguCd)
+                    .queryParam("baseYm", baseYm)
                     .queryParam("tarSjrnDsIxCd", "21")
                     .queryParam("_type", "json")
                     .build(true)
                     .toUriString();
 
             PublicApiResponse<AreaTarDemDsDto> response = webClient.get()
-                    .uri(url)
+                    .uri(java.net.URI.create(url))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<PublicApiResponse<AreaTarDemDsDto>>() {})
                     .block();
@@ -61,8 +59,9 @@ public class AreaTarDemDsClient {
             if (response != null && response.isSuccess()) {
                 return response.getItems();
             }
+            log.warn("D 지표 응답 실패: {}/{} {} resultCode={}", areaCd, signguCd, baseYm, PublicApiResponse.resultCodeOf(response));
         } catch (Exception e) {
-            // API 실패 시 null 반환
+            log.warn("D 지표 호출 실패: {}/{} {} error={}", areaCd, signguCd, baseYm, e.toString());
         }
         return List.of();
     }
@@ -73,7 +72,7 @@ public class AreaTarDemDsClient {
      * @param signguCd 시군구 코드
      * @return 소비 강도 데이터 리스트
      */
-    public List<AreaTarDemDsDto> fetchSpendIntensity(String areaCd, String signguCd) {
+    public List<AreaTarDemDsDto> fetchSpendIntensity(String areaCd, String signguCd, String baseYm) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/B551011/AreaTarDemDsService/areaTarExpDsList")
                     .queryParam("serviceKey", serviceKey)
@@ -83,13 +82,14 @@ public class AreaTarDemDsClient {
                     .queryParam("MobileApp", "Tourfolio")
                     .queryParam("areaCd", areaCd)
                     .queryParam("signguCd", signguCd)
+                    .queryParam("baseYm", baseYm)
                     .queryParam("tarExpDsIxCd", "22")
                     .queryParam("_type", "json")
                     .build(true)
                     .toUriString();
 
             PublicApiResponse<AreaTarDemDsDto> response = webClient.get()
-                    .uri(url)
+                    .uri(java.net.URI.create(url))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<PublicApiResponse<AreaTarDemDsDto>>() {})
                     .block();
@@ -97,8 +97,9 @@ public class AreaTarDemDsClient {
             if (response != null && response.isSuccess()) {
                 return response.getItems();
             }
+            log.warn("D 지표 응답 실패: {}/{} {} resultCode={}", areaCd, signguCd, baseYm, PublicApiResponse.resultCodeOf(response));
         } catch (Exception e) {
-            // API 실패 시 null 반환
+            log.warn("D 지표 호출 실패: {}/{} {} error={}", areaCd, signguCd, baseYm, e.toString());
         }
         return List.of();
     }

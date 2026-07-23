@@ -2,18 +2,18 @@ package com.tourfolio.app.api.client;
 
 import com.tourfolio.app.api.PublicApiResponse;
 import com.tourfolio.app.api.dto.TatsCnctrRateDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-/**
- * P (관광지 집중률 예측) API 클라이언트
- * API: GET https://apis.data.go.kr/B551011/TatsCnctrRateService/tatsCnctrRatedList
- */
+@Slf4j
 @Component
 public class TatsCnctrRateClient {
 
@@ -42,18 +42,20 @@ public class TatsCnctrRateClient {
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/B551011/TatsCnctrRateService/tatsCnctrRatedList")
                     .queryParam("serviceKey", serviceKey)
                     .queryParam("pageNo", "1")
-                    .queryParam("numOfRows", "10")
+                    // 향후 30일치 예측을 모두 받아온 뒤 앞 7일만 사용한다
+                    .queryParam("numOfRows", "40")
                     .queryParam("MobileOS", "ETC")
                     .queryParam("MobileApp", "Tourfolio")
                     .queryParam("areaCd", areaCd)
                     .queryParam("signguCd", signguCd)
-                    .queryParam("tAtsNm", tAtsNm)
+                    // build(true)는 인코딩을 건너뛰므로 한글 관광지명은 직접 인코딩해야 한다
+                    .queryParam("tAtsNm", URLEncoder.encode(tAtsNm, StandardCharsets.UTF_8))
                     .queryParam("_type", "json")
                     .build(true)
                     .toUriString();
 
             PublicApiResponse<TatsCnctrRateDto> response = webClient.get()
-                    .uri(url)
+                    .uri(java.net.URI.create(url))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<PublicApiResponse<TatsCnctrRateDto>>() {})
                     .block();
@@ -61,8 +63,9 @@ public class TatsCnctrRateClient {
             if (response != null && response.isSuccess()) {
                 return response.getItems();
             }
+            log.warn("P 지표 응답 실패: spot={} resultCode={}", tAtsNm, PublicApiResponse.resultCodeOf(response));
         } catch (Exception e) {
-            // API 실패 시 null 반환
+            log.warn("P 지표 호출 실패: spot={} error={}", tAtsNm, e.toString());
         }
         return List.of();
     }

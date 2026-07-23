@@ -11,9 +11,11 @@ public final class NormalizationConstants {
     }
 
     // P (관광지 집중률 예측) 정규화 상수
+    // 집중률은 피크 대비 상대값(0~100)이므로 상한은 100.0 이다.
+    // 91.69는 최댓값이 아니라 범위(100 - 8.31)임에 주의.
     public static final double P_MIN = 8.31;
-    public static final double P_MAX = 91.69;
-    public static final double P_RANGE = P_MAX - P_MIN;
+    public static final double P_MAX = 100.0;
+    public static final double P_RANGE = P_MAX - P_MIN;   // = 91.69
 
     // D (지역별 관광 수요 강도) 정규화 상수
     public static final double D_STAY_MIN = 60.46;

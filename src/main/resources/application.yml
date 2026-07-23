@@ -1,61 +1,38 @@
 spring:
   application:
     name: tourfolio
-  
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:mysql://localhost:3306/tourfolio?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
-      connection-timeout: 30000
 
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
-    show-sql: ${JPA_SHOW_SQL:false}
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
 
 server:
-  port: ${SERVER_PORT:8000}
+  port: 8000
 
 swagger:
-  server-url: ${SWAGGER_SERVER_URL:https://tourfolio.kr}
-
-openapi:
-  service:
-    key: ${OPENAPI_SERVICE_KEY:}
+  server-url: http://localhost:8000
 
 tour:
   api:
-    service-key: ${TOUR_API_SERVICE_KEY:}
-    base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr}
-
-endpoint:
-  demand: ${ENDPOINT_DEMAND:https://apis.data.go.kr/B551011/AreaTarDemDsService}
-  resdem: ${ENDPOINT_RESDEM:https://apis.data.go.kr/B551011/AreaTarResDemService}
-  visitor: ${ENDPOINT_VISITOR:https://apis.data.go.kr/B551011/DataLabService}
-  forecast: ${ENDPOINT_FORECAST:https://apis.data.go.kr/B551011/TatsCnctrRateService}
+    # URL 인코딩된 키를 넣어야 한다. 디코딩된 원본(+, /, =)을 넣으면 401이 난다.
+    service-key: ${TOUR_API_SERVICE_KEY:9gW0r4tl6Md49Aj9LDANE3in2AU8Flq7n%2BR%2F4GTTeYn5lukUig9L8VpQprv%2B3XNhbLJmtGkOYtydXle35DQG8A%3D%3D}
+    base-url: https://apis.data.go.kr
 
 kakao:
   client-id: ${KAKAO_CLIENT_ID:}
-  redirect-uri: ${KAKAO_REDIRECT_URI:http://100.30.180.234:8000/api/v1/auth/kakao/callback}
+  redirect-uri: http://localhost:8000/api/v1/auth/kakao/callback
 
 logging:
   level:
-    root: INFO
-    com.tourfolio.app: DEBUG   # 디버깅을 위해 DEBUG 레벨로 상향
+    com.tourfolio.app: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE # SQL 파라미터 확인용
-org:
-  hibernate:
-    SQL: DEBUG
-    type:
-      descriptor:
-        sql:
-          BasicBinder: TRACE

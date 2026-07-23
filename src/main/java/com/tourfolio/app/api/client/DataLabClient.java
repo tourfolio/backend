@@ -2,6 +2,7 @@ package com.tourfolio.app.api.client;
 
 import com.tourfolio.app.api.PublicApiResponse;
 import com.tourfolio.app.api.dto.DataLabDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -10,13 +11,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-/**
- * S (전국 방문자수 빅데이터) API 클라이언트
- * API: GET https://apis.data.go.kr/B551011/DataLabService/metcoRegnVisitrDDList
- * (광역 지자체 지역방문자수, touDivCd=2 외지인만 사용)
- */
+@Slf4j
 @Component
 public class DataLabClient {
 
@@ -34,32 +32,38 @@ public class DataLabClient {
     }
 
     /**
-     * 광역 지자체 지역방문자수 데이터 조회 (외지인만)
-     * @param areaCd 지역 코드
-     * @param startDate 조회 시작일 (30일 이전 데이터만 사용 가능)
+     * 전국 광역 지자체 지역방문자수 데이터 조회.
+     *
+     * 이 API는 areaCd / touDivCd 를 요청 파라미터로 받지 않는다(넘기면 오히려 오류).
+     * 전국 17개 시도 × 3개 관광객 구분이 일자별로 모두 내려오므로,
+     * 외지인(touDivCd=2) 선별과 전국 합산은 호출한 쪽에서 수행한다.
+     *
+     * @param startDate 조회 시작일 (데이터는 약 30일 지연 발행)
      * @param endDate 조회 종료일
-     * @return 방문자수 데이터 리스트
+     * @return 방문자수 데이터 리스트 (전 지역/전 구분 혼재)
      */
-    public List<DataLabDto> fetchVisitorCounts(String areaCd, LocalDate startDate, LocalDate endDate) {
+    public List<DataLabDto> fetchVisitorCounts(LocalDate startDate, LocalDate endDate) {
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-            
+
+            // 하루 51행(17개 시도 × 3개 구분)이므로 여유 있게 요청한다
+            long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+            long rows = Math.max(days, 1) * 51 + 100;
+
             String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/B551011/DataLabService/metcoRegnVisitrDDList")
                     .queryParam("serviceKey", serviceKey)
                     .queryParam("pageNo", "1")
-                    .queryParam("numOfRows", "31")
+                    .queryParam("numOfRows", String.valueOf(rows))
                     .queryParam("MobileOS", "ETC")
                     .queryParam("MobileApp", "Tourfolio")
-                    .queryParam("areaCd", areaCd)
-                    .queryParam("touDivCd", "2")
-                    .queryParam("stdYmd", startDate.format(formatter))
+                    .queryParam("startYmd", startDate.format(formatter))
                     .queryParam("endYmd", endDate.format(formatter))
                     .queryParam("_type", "json")
                     .build(true)
                     .toUriString();
 
             PublicApiResponse<DataLabDto> response = webClient.get()
-                    .uri(url)
+                    .uri(java.net.URI.create(url))
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<PublicApiResponse<DataLabDto>>() {})
                     .block();
@@ -67,8 +71,9 @@ public class DataLabClient {
             if (response != null && response.isSuccess()) {
                 return response.getItems();
             }
+            log.warn("S 지표 응답 실패: {}~{} resultCode={}", startDate, endDate, PublicApiResponse.resultCodeOf(response));
         } catch (Exception e) {
-            // API 실패 시 null 반환
+            log.warn("S 지표 호출 실패: {}~{} error={}", startDate, endDate, e.toString());
         }
         return List.of();
     }

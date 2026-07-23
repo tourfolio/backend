@@ -38,6 +38,19 @@ public class PriceHistory {
     @Column(name = "ts_score", precision = 10, scale = 4)
     private BigDecimal tsScore;
 
+    // 개별 지표 보존: API 실패 시 "이전 값 유지" 폴백의 소스가 된다
+    @Column(name = "p_score", precision = 10, scale = 4)
+    private BigDecimal pScore;
+
+    @Column(name = "d_score", precision = 10, scale = 4)
+    private BigDecimal dScore;
+
+    @Column(name = "r_score", precision = 10, scale = 4)
+    private BigDecimal rScore;
+
+    @Column(name = "s_coefficient", precision = 10, scale = 4)
+    private BigDecimal sCoefficient;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

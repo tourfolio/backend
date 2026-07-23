@@ -24,26 +24,24 @@ public class PriceCalculationService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final TransactionRepository transactionRepository;
 
-    public static class YesterdayContext {
-        private final Double yesterdayTS;
-        private final BigDecimal yesterdayPrice;
+    public record YesterdayContext(Double yesterdayTS, BigDecimal yesterdayPrice, Double yesterdayP, Double yesterdayD,
+                                   Double yesterdayR) {
+            public YesterdayContext(Double yesterdayTS, BigDecimal yesterdayPrice) {
+                this(yesterdayTS, yesterdayPrice, null, null, null);
+            }
 
-        public YesterdayContext(Double yesterdayTS, BigDecimal yesterdayPrice) {
-            this.yesterdayTS = yesterdayTS;
-            this.yesterdayPrice = yesterdayPrice;
-        }
-
-        public Double getYesterdayTS() { return yesterdayTS; }
-        public BigDecimal getYesterdayPrice() { return yesterdayPrice; }
     }
 
     public YesterdayContext getYesterdayContext(Spot spot) {
         try {
-            PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(spot.getId());
-            if (latestHistory != null) {
+            PriceHistory latest = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(spot.getId());
+            if (latest != null) {
                 return new YesterdayContext(
-                        latestHistory.getTsScore() != null ? latestHistory.getTsScore().doubleValue() : null,
-                        latestHistory.getPrice()
+                        toDouble(latest.getTsScore()),
+                        latest.getPrice(),
+                        toDouble(latest.getPScore()),
+                        toDouble(latest.getDScore()),
+                        toDouble(latest.getRScore())
                 );
             }
         } catch (Exception e) {
@@ -52,21 +50,25 @@ public class PriceCalculationService {
         return null;
     }
 
+    private static Double toDouble(BigDecimal value) {
+        return value != null ? value.doubleValue() : null;
+    }
+
     public BigDecimal calculateTodayPrice(Spot spot, YesterdayContext ctx, Double p, Double d, Double r, Double s) {
-        if (ctx == null || ctx.getYesterdayTS() == null || ctx.getYesterdayPrice() == null) {
+        if (ctx == null || ctx.yesterdayTS() == null || ctx.yesterdayPrice() == null) {
             return spot.getCurrentPrice();
         }
 
         try {
             double todayTS = (p * 0.60) + (d * 0.25) + (r * 0.15);
-            double yesterdayTS = ctx.getYesterdayTS();
+            double yesterdayTS = ctx.yesterdayTS();
             double tsChange = (yesterdayTS != 0) ? (todayTS - yesterdayTS) / yesterdayTS : 0.0;
             double us = calculateUserSentiment(spot);
 
             double raw = ((tsChange * 0.8) + (us * 0.2)) * s;
             double finalChange = NormalizationConstants.clampFinalChange(raw);
 
-            return ctx.getYesterdayPrice().multiply(BigDecimal.valueOf(1.0 + finalChange))
+            return ctx.yesterdayPrice().multiply(BigDecimal.valueOf(1.0 + finalChange))
                     .setScale(0, RoundingMode.HALF_UP);
         } catch (Exception e) {
             log.error("가격 계산 오류: spotId={}, error={}", spot.getId(), e.getMessage());

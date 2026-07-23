@@ -54,12 +54,29 @@ public class PublicApiResponse<T> {
         private List<T> item;
     }
 
+    /**
+     * 공공데이터포털은 정상 응답 코드로 "0000"을 내려준다.
+     * (일부 레거시 서비스는 "00"을 쓰므로 둘 다 허용)
+     */
     public boolean isSuccess() {
-        return response != null && response.header != null && "00".equals(response.header.resultCode);
+        if (response == null || response.header == null) {
+            return false;
+        }
+        String code = response.header.resultCode;
+        return "0000".equals(code) || "00".equals(code);
+    }
+
+    /** 진단 로그용 결과 코드 (응답 자체가 없으면 "no-response") */
+    public static String resultCodeOf(PublicApiResponse<?> response) {
+        if (response == null || response.response == null || response.response.header == null) {
+            return "no-response";
+        }
+        return response.response.header.resultCode;
     }
 
     public List<T> getItems() {
-        if (response != null && response.body != null && response.body.items != null) {
+        if (response != null && response.body != null
+                && response.body.items != null && response.body.items.item != null) {
             return response.body.items.item;
         }
         return List.of();
