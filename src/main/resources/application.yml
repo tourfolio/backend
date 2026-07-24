@@ -3,9 +3,9 @@ spring:
     name: tourfolio
 
   datasource:
-    url: jdbc:mysql://localhost:3306/tourfolio?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: 1234
+    url: jdbc:mysql://tourfolio-db.cojqgcqou7q8.us-east-1.rds.amazonaws.com:3306/tourfolio?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: admin
+    password: tourfolio1234
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -30,7 +30,7 @@ tour:
 
 kakao:
   client-id: ${KAKAO_CLIENT_ID:}
-  redirect-uri: http://localhost:8000/api/v1/auth/kakao/callback
+  redirect-uri: https://tourfolio.kr/api/v1/auth/kakao/callback
 
 logging:
   level:
