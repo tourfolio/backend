@@ -107,4 +107,36 @@ public class UserService {
                 .createdAt(member.getCreatedAt())
                 .build();
     }
+
+    // 3. 자산 충전
+    @Transactional
+    public Member chargeBalance(Long memberId, BigDecimal amount) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ResourceNotFoundException("회원을 찾을 수 없습니다."));
+
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
+        }
+
+        member.setBalance(member.getBalance().add(amount));
+        Member savedMember = memberRepository.save(member);
+        log.info("자산 충전 완료: memberId={}, 충전금액={}, 현재잔액={}", memberId, amount, savedMember.getBalance());
+        return savedMember;
+    }
+
+    // 4. 프로필 수정 (닉네임)
+    @Transactional
+    public Member updateProfile(Long memberId, String newNickname) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ResourceNotFoundException("회원을 찾을 수 없습니다."));
+
+        if (!member.getNickname().equals(newNickname) && memberRepository.existsByNickname(newNickname)) {
+            throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
+        }
+
+        member.setNickname(newNickname);
+        Member savedMember = memberRepository.save(member);
+        log.info("프로필 수정 완료: memberId={}, 새 닉네임={}", memberId, newNickname);
+        return savedMember;
+    }
 }
