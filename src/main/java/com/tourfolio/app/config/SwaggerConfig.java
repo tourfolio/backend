@@ -19,9 +19,15 @@ public class SwaggerConfig {
 
     @Bean
     public OpenAPI tourfolioOpenAPI() {
-        Server server = new Server();
-        server.setUrl(swaggerServerUrl);
-        server.setDescription("Tourfolio API Server");
+        // 1. 운영 서버 (HTTPS)
+        Server prodServer = new Server();
+        prodServer.setUrl(swaggerServerUrl);
+        prodServer.setDescription("Production Server (HTTPS)");
+
+        // 2. 로컬 개발 서버 (HTTP) - 필요 시 스웨거 UI 상단 드롭다운에서 변경 가능
+        Server localServer = new Server();
+        localServer.setUrl("http://localhost:8080");
+        localServer.setDescription("Local Development Server");
 
         Contact contact = new Contact();
         contact.setEmail("tourfolio@example.com");
@@ -35,7 +41,7 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .info(info)
-                .servers(List.of(server));
+                .servers(List.of(prodServer, localServer));
     }
 
     @Bean

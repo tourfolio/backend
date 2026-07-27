@@ -18,13 +18,16 @@ spring:
 
 server:
   port: 8000
+  # Reverse Proxy (Nginx) 사용 시 HTTPS 헤더 인식을 위한 설정
+  forward-headers-strategy: framework
 
 swagger:
-  server-url: http://localhost:8000
+  # Swagger UI 기본 요청 서버 URL (운영 도메인)
+  server-url: https://tourfolio.kr
 
 tour:
   api:
-    # URL 인코딩된 키를 넣어야 한다. 디코딩된 원본(+, /, =)을 넣으면 401이 난다.
+    # URL 인코딩된 키
     service-key: ${TOUR_API_SERVICE_KEY:9gW0r4tl6Md49Aj9LDANE3in2AU8Flq7n%2BR%2F4GTTeYn5lukUig9L8VpQprv%2B3XNhbLJmtGkOYtydXle35DQG8A%3D%3D}
     base-url: https://apis.data.go.kr
 
