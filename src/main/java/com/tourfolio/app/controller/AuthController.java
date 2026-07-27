@@ -16,9 +16,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -67,6 +69,21 @@ public class AuthController {
     public ResponseEntity<SocialAuthResponse> kakaoLogin(@Valid @RequestBody KakaoAuthRequest request) {
         log.info("카카오 소셜 로그인 요청: code={}", request.getCode());
         SocialAuthResponse response = kakaoAuthService.kakaoLogin(request.getCode());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/kakao/callback")
+    @Operation(summary = "카카오 소셜 로그인 콜백", description = "카카오 인가 서버에서 리다이렉트된 인가 코드를 받아 소셜 로그인을 처리합니다.")
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "소셜 로그인 성공"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 인가 코드"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "카카오 API 호출 실패")
+    })
+    public ResponseEntity<SocialAuthResponse> kakaoCallback(
+            @Parameter(description = "카카오 인가 코드", example = "authorization_code_from_kakao", required = true)
+            @RequestParam("code") String code) {
+        log.info("카카오 소셜 로그인 콜백 요청: code={}", code);
+        SocialAuthResponse response = kakaoAuthService.kakaoLogin(code);
         return ResponseEntity.ok(response);
     }
 }
