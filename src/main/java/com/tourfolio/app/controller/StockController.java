@@ -9,7 +9,10 @@ import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -75,7 +78,12 @@ public class StockController {
 
     @PostMapping("/stocks/trade")
     @Operation(summary = "가상 주식 매수/매도", description = "회원 ID, 종목 ID, 거래 유형, 수량을 받아 가상 주식 거래를 체결합니다.")
-    public ResponseEntity<Transaction> executeTrade(@RequestBody TradeRequest request) {
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "거래 성공"),
+            @ApiResponse(responseCode = "400", description = "잔액 부족 또는 유효하지 않은 요청"),
+            @ApiResponse(responseCode = "404", description = "주식 종목을 찾을 수 없음")
+    })
+    public ResponseEntity<Transaction> executeTrade(@Valid @RequestBody TradeRequest request) {
         log.info("POST /api/stocks/trade - 가상 체결 시스템 오더 수신: {}", request);
         Transaction tx = stockService.executeTrade(request);
         return ResponseEntity.ok(tx);

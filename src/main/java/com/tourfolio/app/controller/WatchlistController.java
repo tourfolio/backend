@@ -5,6 +5,8 @@ import com.tourfolio.app.dto.WatchlistResponse;
 import com.tourfolio.app.entity.Watchlist;
 import com.tourfolio.app.service.WatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +27,11 @@ public class WatchlistController {
 
     @PostMapping("/{spotId}")
     @Operation(summary = "관심목록 등록", description = "회원이 특정 관광 주식을 관심목록에 추가합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "관심목록 등록 성공"),
+            @ApiResponse(responseCode = "400", description = "이미 등록된 종목 또는 유효하지 않은 요청"),
+            @ApiResponse(responseCode = "404", description = "회원 또는 주식 종목을 찾을 수 없음")
+    })
     public ResponseEntity<Watchlist> addToWatchlist(
             @PathVariable Long spotId,
             @RequestParam Long memberId) {
