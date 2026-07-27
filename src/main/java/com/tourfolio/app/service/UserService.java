@@ -5,7 +5,10 @@ import com.tourfolio.app.entity.Member;
 import com.tourfolio.app.dto.AuthResponse;
 import com.tourfolio.app.dto.LoginRequest;
 import com.tourfolio.app.dto.SignupRequest;
-import com.tourfolio.app.exception.*;
+import com.tourfolio.app.exception.CustomException;
+import com.tourfolio.app.exception.DuplicateEmailException;
+import com.tourfolio.app.exception.DuplicateNicknameException;
+import com.tourfolio.app.exception.InvalidCredentialsException;
 import com.tourfolio.app.repository.AttendanceRepository;
 import com.tourfolio.app.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -112,10 +115,10 @@ public class UserService {
     @Transactional
     public Member chargeBalance(Long memberId, BigDecimal amount) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
 
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("충전 금액은 0보다 커야 합니다.");
+            throw new CustomException("INVALID_AMOUNT", "충전 금액은 0보다 커야 합니다.");
         }
 
         member.setBalance(member.getBalance().add(amount));
@@ -128,7 +131,7 @@ public class UserService {
     @Transactional
     public Member updateProfile(Long memberId, String newNickname) {
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException("회원을 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
 
         if (!member.getNickname().equals(newNickname) && memberRepository.existsByNickname(newNickname)) {
             throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
