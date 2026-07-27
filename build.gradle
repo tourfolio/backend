@@ -46,3 +46,14 @@ tasks.named('test') {
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
+
+// --- 자동 배포용 필수 추가 설정 ---
+// 1. 일반 jar (plain.jar) 생성을 비활성화하여 single jar만 만들어지도록 설정
+jar {
+    enabled = false
+}
+
+// 2. 생성되는 executable jar 파일명 고정
+bootJar {
+    archiveFileName = 'app.jar'
+}
