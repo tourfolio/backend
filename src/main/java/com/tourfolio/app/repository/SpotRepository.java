@@ -47,4 +47,19 @@ public interface SpotRepository extends JpaRepository<Spot, Long> {
 
     @Query("SELECT s FROM Spot s WHERE (:keyword IS NULL OR :keyword = '' OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (:areaCode IS NULL OR :areaCode = '' OR s.areaCode = :areaCode) AND (:themeTag IS NULL OR :themeTag = '' OR s.themeTag = :themeTag)")
     List<Spot> searchExploreCards(@Param("keyword") String keyword, @Param("areaCode") String areaCode, @Param("themeTag") String themeTag);
+
+    @Query("SELECT s FROM Spot s WHERE (:keyword IS NULL OR :keyword = '' OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (:areaCode IS NULL OR :areaCode = '' OR s.region = :areaCode) AND (:themeTag IS NULL OR :themeTag = '' OR s.themeTag = :themeTag)")
+    List<Spot> searchSpotsWithFilters(@Param("keyword") String keyword, @Param("areaCode") String areaCode, @Param("themeTag") String themeTag);
+
+    @Query("SELECT s FROM Spot s ORDER BY s.tier ASC, s.name ASC")
+    List<Spot> findMainCards();
+
+    @Query("SELECT s FROM Spot s ORDER BY (s.currentPrice - s.prevPrice) / s.prevPrice DESC")
+    List<Spot> findTrendingSpots();
+
+    @Query("SELECT s FROM Spot s WHERE s.theme = :theme ORDER BY s.tier ASC")
+    List<Spot> findByThemeOrderByTier(@Param("theme") String theme);
+
+    @Query("SELECT s FROM Spot s WHERE s.region = :region AND s.id != :spotId ORDER BY s.tier ASC")
+    List<Spot> findNearbySpots(@Param("region") String region, @Param("spotId") Long spotId);
 }
