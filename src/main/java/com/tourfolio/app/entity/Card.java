@@ -30,10 +30,10 @@ public class Card {
     @Column(nullable = false, length = 50)
     private String theme;
 
-    @Column(nullable = false, precision = 10, scale = 7)
+    @Column(nullable = false)
     private Double latitude;
 
-    @Column(nullable = false, precision = 10, scale = 7)
+    @Column(nullable = false)
     private Double longitude;
 
     @Column(name = "glow_color_code", length = 20)
