@@ -90,7 +90,7 @@ public class ExploreController {
     @GetMapping("/spots/{spotId}")
     @Operation(
             summary = "관광지 상세 정보 조회",
-            description = "탐색 탭 내 관광지 상세 페이지를 조회합니다. 기본 정보, 매력 포인트, 주변 관광지, 투자 연결 데이터를 반환합니다."
+            description = "탐색 탭 내 관광지 상세 페이지를 조회합니다. 기본 정보, 매력 포인트, 주변 관광지를 반환합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "관광지 상세 정보 조회 성공"),
