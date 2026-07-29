@@ -16,4 +16,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     List<Card> findCardsWithFilters(@Param("region") String region, @Param("theme") String theme, @Param("rarity") Card.CardRarity rarity);
 
     Optional<Card> findBySpotId(Long spotId);
+
+    @Query("SELECT s.id FROM Spot s WHERE s.id NOT IN (SELECT c.spotId FROM Card c)")
+    List<Long> findSpotIdsWithoutCards();
 }

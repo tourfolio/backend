@@ -8,6 +8,10 @@ spring:
     password: tourfolio1234
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  sql:
+    init:
+      mode: always
+
   jpa:
     hibernate:
       ddl-auto: update
