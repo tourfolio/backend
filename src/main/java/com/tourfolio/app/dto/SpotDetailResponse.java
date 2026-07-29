@@ -50,7 +50,4 @@ public class SpotDetailResponse {
 
     @Schema(description = "주변 관광지 목록")
     private List<NearbySpot> nearbySpots;
-
-    @Schema(description = "연동된 주식/투자 종목 ID", example = "1")
-    private Long stockId;
 }

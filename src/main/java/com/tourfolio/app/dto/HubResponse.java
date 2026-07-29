@@ -18,6 +18,6 @@ public class HubResponse {
     @Schema(description = "테마로 떠나는 여행 목록")
     private List<ThemeCard> themes;
 
-    @Schema(description = "지금 뜨는 여행지 (인기/급상승 관광지)")
+    @Schema(description = "인기/추천 관광지 목록")
     private List<TrendingSpot> trendingSpots;
 }

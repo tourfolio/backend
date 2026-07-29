@@ -7,8 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @Builder
 @NoArgsConstructor
@@ -39,13 +37,4 @@ public class ExploreResponse {
 
     @Schema(description = "관광지 요약 설명", example = "해운대의 랜드마크 쇼핑몰과 호텔 복합 시설")
     private String description;
-
-    @Schema(description = "현재 주가", example = "5000.00")
-    private BigDecimal currentPrice;
-
-    @Schema(description = "전일 대비 등락률 (%)", example = "2.35")
-    private BigDecimal changeRate;
-
-    @Schema(description = "관광 데이터 점수", example = "0.8550")
-    private BigDecimal tourismScore;
 }

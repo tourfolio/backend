@@ -9,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,14 +46,6 @@ public class ExploreService {
     }
 
     private ExploreResponse mapToExploreResponse(Spot spot) {
-        BigDecimal changeRate = BigDecimal.ZERO;
-        if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-            changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                    .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100))
-                    .setScale(2, RoundingMode.HALF_UP);
-        }
-
         return ExploreResponse.builder()
                 .id(spot.getId())
                 .name(spot.getName())
@@ -65,9 +55,6 @@ public class ExploreService {
                 .tier(spot.getTier())
                 .imageUrl(spot.getImageUrl())
                 .description(spot.getDescription())
-                .currentPrice(spot.getCurrentPrice())
-                .changeRate(changeRate)
-                .tourismScore(spot.getTourismDataWeight())
                 .build();
     }
 
@@ -121,23 +108,17 @@ public class ExploreService {
                         .build()
         );
 
-        // 인기/급상승 관광지
+        // 인기/추천 관광지
         List<Spot> trendingSpots = spotRepository.findTrendingSpots();
         List<TrendingSpot> trending = trendingSpots.stream()
                 .limit(5)
                 .map(spot -> {
-                    BigDecimal changeRate = BigDecimal.ZERO;
-                    if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-                        changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                                .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                                .multiply(BigDecimal.valueOf(100))
-                                .setScale(2, RoundingMode.HALF_UP);
-                    }
+                    int index = trendingSpots.indexOf(spot) + 1;
                     return TrendingSpot.builder()
                             .spotId(spot.getId())
                             .name(spot.getName())
                             .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
-                            .weeklyChangeRate(changeRate.compareTo(BigDecimal.ZERO) >= 0 ? "+" + changeRate + "%" : changeRate + "%")
+                            .popularityRank(index)
                             .imageUrl(spot.getImageUrl())
                             .build();
                 })
@@ -227,7 +208,6 @@ public class ExploreService {
                 .phoneNumber("02-1234-5678")
                 .attractionPoints(attractionPoints)
                 .nearbySpots(nearby)
-                .stockId(spot.getId()) // 관광지 ID와 주식 ID가 1:1 매핑된다고 가정
                 .build();
     }
 

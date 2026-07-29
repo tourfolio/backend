@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "인기/급상승 관광지 DTO")
+@Schema(description = "인기/추천 관광지 DTO")
 public class TrendingSpot {
 
     @Schema(description = "관광지 ID", example = "1")
@@ -22,8 +22,8 @@ public class TrendingSpot {
     @Schema(description = "지역명", example = "부산")
     private String location;
 
-    @Schema(description = "주간 상승률", example = "+32%")
-    private String weeklyChangeRate;
+    @Schema(description = "인기 순위", example = "1")
+    private Integer popularityRank;
 
     @Schema(description = "썸네일 이미지 URL", example = "https://example.com/images/haeundae.jpg")
     private String imageUrl;
