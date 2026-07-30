@@ -8,6 +8,7 @@ import com.tourfolio.app.repository.SpotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
@@ -108,8 +109,8 @@ public class ExploreService {
                         .build()
         );
 
-        // 인기/추천 관광지
-        List<Spot> trendingSpots = spotRepository.findTrendingSpots();
+        // 인기/추천 관광지 (조회수 기반)
+        List<Spot> trendingSpots = spotRepository.findTrendingSpotsByViewCount();
         List<TrendingSpot> trending = trendingSpots.stream()
                 .limit(5)
                 .map(spot -> {
@@ -163,11 +164,16 @@ public class ExploreService {
     }
 
     // 신규: 관광지 상세 정보 조회
+    @Transactional
     public SpotDetailResponse getSpotDetail(Long spotId) {
         log.info("관광지 상세 정보 조회 시작: spotId={}", spotId);
 
         Spot spot = spotRepository.findById(spotId)
                 .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "관광지를 찾을 수 없습니다."));
+
+        // 조회수 증가
+        spot.setViewCount(spot.getViewCount() + 1);
+        spotRepository.save(spot);
 
         // 주변 관광지 조회
         List<Spot> nearbySpots = spotRepository.findNearbySpots(spot.getRegion(), spotId);
@@ -212,14 +218,14 @@ public class ExploreService {
     }
 
     // 신규: 복합 필터링 검색 (totalCount 포함)
-    public SearchResponse searchSpotsWithTotalCount(String keyword, String region, String tag) {
-        log.info("복합 필터링 검색 시작: keyword={}, region={}, tag={}", keyword, region, tag);
+    public SearchResponse searchSpotsWithTotalCount(String keyword, List<String> regions, List<String> themes) {
+        log.info("복합 필터링 검색 시작: keyword={}, regions={}, themes={}", keyword, regions, themes);
 
         String normalizedKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
-        String normalizedRegion = (region == null || region.trim().isEmpty()) ? null : region.trim();
-        String normalizedTag = (tag == null || tag.trim().isEmpty()) ? null : tag.trim();
+        List<String> normalizedRegions = (regions == null || regions.isEmpty()) ? null : regions;
+        List<String> normalizedThemes = (themes == null || themes.isEmpty()) ? null : themes;
 
-        List<Spot> spots = spotRepository.searchSpotsWithFilters(normalizedKeyword, normalizedRegion, normalizedTag);
+        List<Spot> spots = spotRepository.searchSpotsWithFilters(normalizedKeyword, normalizedRegions, normalizedThemes);
         List<SearchResponse.SearchSpotItem> items = spots.stream()
                 .map(spot -> SearchResponse.SearchSpotItem.builder()
                         .spotId(spot.getId())

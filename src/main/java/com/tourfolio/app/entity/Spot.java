@@ -78,4 +78,8 @@ public class Spot {
 
     @Column(length = 500)
     private String description;
+
+    @Column(name = "view_count")
+    @Builder.Default
+    private Long viewCount = 0L;
 }

@@ -108,7 +108,7 @@ public class ExploreController {
     @GetMapping("/search")
     @Operation(
             summary = "탐색 화면 복합 필터링 검색",
-            description = "키워드, 지역, 태그를 조합하여 관광지를 검색합니다. 모든 파라미터는 선택적이며, null이거나 공백인 경우 해당 조건은 무시됩니다. 검색된 관광지 목록과 총 개수를 반환합니다."
+            description = "키워드, 지역(다중 선택), 테마(다중 선택)를 조합하여 관광지를 검색합니다. 키워드는 관광지명과 태그명 모두 검색합니다. 모든 파라미터는 선택적이며, null이거나 비어있는 경우 해당 조건은 무시됩니다. 검색된 관광지 목록과 총 개수를 반환합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "필터링 검색 성공"),
@@ -117,30 +117,30 @@ public class ExploreController {
     })
     public ResponseEntity<SearchResponse> searchExploreCards(
             @Parameter(
-                    description = "검색어 (관광지명, 지역명 실시간 검색)",
+                    description = "검색어 (관광지명, 태그명 검색)",
                     example = "해운대",
                     required = false
             )
             @RequestParam(required = false) String keyword,
 
             @Parameter(
-                    description = "지역 필터 (예: 서울, 부산, 제주, 강원, 전주 등)",
-                    example = "부산",
+                    description = "지역 필터 (다중 선택, 예: 서울, 부산, 제주)",
+                    example = "서울,부산",
                     required = false
             )
-            @RequestParam(required = false) String region,
+            @RequestParam(required = false) List<String> regions,
 
             @Parameter(
-                    description = "태그 필터 (예: #벚꽃, #야경, #혼자여행, #가족여행, #인생샷 등)",
-                    example = "레저",
+                    description = "테마 필터 (다중 선택, 예: 역사, 문화, 자연)",
+                    example = "역사,문화",
                     required = false
             )
-            @RequestParam(required = false) String tag) {
+            @RequestParam(required = false) List<String> themes) {
 
-        log.info("GET /api/v1/explore/search - 탐색 화면 복합 필터링 검색 요청: keyword={}, region={}, tag={}",
-                keyword, region, tag);
+        log.info("GET /api/v1/explore/search - 탐색 화면 복합 필터링 검색 요청: keyword={}, regions={}, themes={}",
+                keyword, regions, themes);
 
-        SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, region, tag);
+        SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, regions, themes);
         return ResponseEntity.ok(searchResult);
     }
 }
