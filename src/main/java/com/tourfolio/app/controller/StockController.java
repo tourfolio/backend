@@ -97,4 +97,16 @@ public class StockController {
         log.info("GET /api/portfolio - 유저 포트폴리오 자산 스크리너 조회 ID: {}, sort={}", memberId, sort);
         return ResponseEntity.ok(stockService.getMemberAssets(memberId, sort));
     }
+
+    @PostMapping("/stocks/update-prices")
+    @Operation(summary = "수동 주가 업데이트 (개발/검수용)", description = "스케줄러 주기와 상관없이 주가를 즉시 갱신합니다. 개발 및 검수용으로 사용하세요.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "주가 업데이트 성공"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    public ResponseEntity<Void> updatePricesManually() {
+        log.info("POST /api/stocks/update-prices - 수동 주가 업데이트 트리거");
+        stockService.updateDailyStockPrices();
+        return ResponseEntity.ok().build();
+    }
 }
