@@ -82,4 +82,8 @@ public class Spot {
     @Column(name = "view_count")
     @Builder.Default
     private Long viewCount = 0L;
+
+    public void incrementViewCount() {
+        this.viewCount = (this.viewCount == null ? 0L : this.viewCount) + 1;
+    }
 }

@@ -172,7 +172,7 @@ public class ExploreService {
                 .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "관광지를 찾을 수 없습니다."));
 
         // 조회수 증가
-        spot.setViewCount(spot.getViewCount() + 1);
+        spot.incrementViewCount();
         spotRepository.save(spot);
 
         // 주변 관광지 조회
