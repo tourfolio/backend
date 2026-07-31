@@ -15,13 +15,14 @@ public class SchedulerConfig {
 
     private final StockService stockService;
 
-    @Scheduled(cron = "0 0 9 * * *")
+    @Scheduled(cron = "0 0 9 * * *", zone = "Asia/Seoul")
     public void updateDailyStockPrices() {
-        log.info("⏰ 매일 오전 9시 배치: 관광 지표 기반 주가 정산 시작");
+        log.info("⏰ 매일 오전 9시 (한국 시간) 배치: 관광 지표 기반 주가 정산 시작");
         try {
             stockService.updateDailyStockPrices();
+            log.info("✅ 주가 정산 배치 완료");
         } catch (Exception e) {
-            log.error("정산 배치 도중 예외가 차단되었습니다: {}", e.getMessage());
+            log.error("❌ 정산 배치 도중 예외 발생: {}", e.getMessage(), e);
         }
     }
 }
