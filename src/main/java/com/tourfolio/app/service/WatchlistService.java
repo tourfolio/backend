@@ -45,6 +45,8 @@ public class WatchlistService {
             Watchlist watchlist = Watchlist.builder()
                     .memberId(memberId)
                     .spotId(spotId)
+                    .member(null)
+                    .spot(null)
                     .build();
 
             log.info("관심 목록 추가: memberId={}, spotId={}", memberId, spotId);
@@ -54,7 +56,7 @@ public class WatchlistService {
             throw e;
         } catch (Exception e) {
             log.error("관심 목록 추가 실패 (시스템 예외): memberId={}, spotId={}", memberId, spotId, e);
-            throw new CustomException("WATCHLIST_ADD_FAILED", "관심 목록 추가 중 오류가 발생했습니다.");
+            throw new CustomException("WATCHLIST_ADD_FAILED", "관심 목록 추가 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
 
