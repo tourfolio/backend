@@ -38,7 +38,7 @@ public class Watchlist {
     }
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", insertable = false, updatable = false)
+    @JoinColumn(name = "member_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
