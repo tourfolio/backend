@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tourfolio.app.dto.KakaoTokenResponse;
 import com.tourfolio.app.dto.KakaoUserInfoResponse;
 import com.tourfolio.app.dto.SocialAuthResponse;
-import com.tourfolio.app.entity.Member;
-import com.tourfolio.app.repository.MemberRepository;
+import com.tourfolio.app.entity.User;
+import com.tourfolio.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,7 @@ import java.util.UUID;
 public class KakaoAuthService {
 
     private final RestTemplate restTemplate;
-    private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper;
 
     @Value("${kakao.client-id}")
@@ -58,28 +58,28 @@ public class KakaoAuthService {
 
             // 3. 기존 회원 확인
             String providerId = String.valueOf(userInfo.getId());
-            Member member = memberRepository.findByProviderAndProviderId("KAKAO", providerId)
+            User user = userRepository.findByProviderAndProviderId("KAKAO", providerId)
                     .orElse(null);
 
             boolean isNewMember = false;
 
             // 4. 신규 회원인 경우 자동 가입
-            if (member == null) {
-                member = createKakaoMember(userInfo);
+            if (user == null) {
+                user = createKakaoMember(userInfo);
                 isNewMember = true;
-                log.info("카카오 신규 회원 가입 완료: memberId={}, email={}", member.getId(), member.getEmail());
+                log.info("카카오 신규 회원 가입 완료: userId={}, email={}", user.getId(), user.getEmail());
             } else {
-                log.info("카카오 기존 회원 로그인: memberId={}, email={}", member.getId(), member.getEmail());
+                log.info("카카오 기존 회원 로그인: userId={}, email={}", user.getId(), user.getEmail());
             }
 
             // 5. 응답 생성
             return SocialAuthResponse.builder()
-                    .id(member.getId())
-                    .email(member.getEmail())
-                    .nickname(member.getNickname())
-                    .token(generateToken(member))
+                    .id(user.getId())
+                    .email(user.getEmail())
+                    .nickname(user.getNickname())
+                    .token(generateToken(user))
                     .isNewMember(isNewMember)
-                    .createdAt(member.getCreatedAt())
+                    .createdAt(user.getCreatedAt())
                     .build();
 
         } catch (Exception e) {
@@ -143,17 +143,17 @@ public class KakaoAuthService {
     /**
      * 카카오 회원 생성
      */
-    private Member createKakaoMember(KakaoUserInfoResponse userInfo) {
+    private User createKakaoMember(KakaoUserInfoResponse userInfo) {
         String email = userInfo.getKakaoAccount().getEmail();
         String nickname = userInfo.getKakaoAccount().getProfile().getNickname();
         String providerId = String.valueOf(userInfo.getId());
 
         // 닉네임 중복 확인
-        if (memberRepository.existsByNickname(nickname)) {
+        if (userRepository.existsByNickname(nickname)) {
             nickname = nickname + "_" + UUID.randomUUID().toString().substring(0, 8);
         }
 
-        Member member = Member.builder()
+        User user = User.builder()
                 .email(email)
                 .password("") // 소셜 로그인은 비밀번호 불필요
                 .nickname(nickname)
@@ -165,13 +165,13 @@ public class KakaoAuthService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        return memberRepository.save(member);
+        return userRepository.save(user);
     }
 
     /**
      * 토큰 생성
      */
-    private String generateToken(Member member) {
-        return "TOKEN_" + UUID.randomUUID().toString().replace("-", "") + "_" + member.getId();
+    private String generateToken(User user) {
+        return "TOKEN_" + UUID.randomUUID().toString().replace("-", "") + "_" + user.getId();
     }
 }

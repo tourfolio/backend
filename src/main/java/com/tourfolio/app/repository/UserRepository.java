@@ -1,17 +1,17 @@
 package com.tourfolio.app.repository;
 
-import com.tourfolio.app.entity.Member;
+import com.tourfolio.app.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface MemberRepository extends JpaRepository<Member, Long> {
+public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<Member> findByEmail(String email);
+    Optional<User> findByEmail(String email);
 
-    Optional<Member> findByProviderAndProviderId(String provider, String providerId);
+    Optional<User> findByProviderAndProviderId(String provider, String providerId);
 
     boolean existsByEmail(String email);
 

@@ -8,13 +8,13 @@ import com.tourfolio.app.dto.PriceHistoryResponse;
 import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.entity.Spot;
 import com.tourfolio.app.entity.Transaction;
-import com.tourfolio.app.entity.Member;
+import com.tourfolio.app.entity.User;
 import com.tourfolio.app.entity.Portfolio;
 import com.tourfolio.app.entity.PriceHistory;
 import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.repository.SpotRepository;
 import com.tourfolio.app.repository.TransactionRepository;
-import com.tourfolio.app.repository.MemberRepository;
+import com.tourfolio.app.repository.UserRepository;
 import com.tourfolio.app.repository.PortfolioRepository;
 import com.tourfolio.app.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +36,7 @@ public class StockService {
 
     private final SpotRepository spotRepository;
     private final TransactionRepository transactionRepository;
-    private final MemberRepository memberRepository;
+    private final UserRepository userRepository;
     private final PortfolioRepository portfolioRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final TourIndicatorService tourIndicatorService;
@@ -44,7 +44,7 @@ public class StockService {
 
     @Transactional(rollbackFor = Exception.class)
     public Transaction executeTrade(TradeRequest request) {
-        Member member = memberRepository.findById(request.getMemberId())
+        User user = userRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + request.getMemberId()));
 
         Spot spot = spotRepository.findById(request.getSpotId())
@@ -61,16 +61,16 @@ public class StockService {
         BigDecimal totalAmount = spot.getCurrentPrice().multiply(request.getQuantity()).setScale(2, RoundingMode.HALF_UP);
 
         if ("BUY".equals(type)) {
-            if (member.getBalance().compareTo(totalAmount) < 0) {
+            if (user.getBalance().compareTo(totalAmount) < 0) {
                 throw new CustomException("INSUFFICIENT_BALANCE", "보유 포인트 잔액이 부족하여 가상 매수가 불가능합니다.");
             }
-            member.setBalance(member.getBalance().subtract(totalAmount));
-            memberRepository.save(member);
+            user.setBalance(user.getBalance().subtract(totalAmount));
+            userRepository.save(user);
 
             // 포트폴리오 원장 갱신 및 평균 매수 평단가 가중치 계산
-            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(member.getId(), spot.getId())
+            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(user.getId(), spot.getId())
                     .orElse(Portfolio.builder()
-                            .memberId(member.getId())
+                            .memberId(user.getId())
                             .spotId(spot.getId())
                             .quantity(BigDecimal.ZERO)
                             .averagePurchasePrice(BigDecimal.ZERO)
@@ -88,15 +88,15 @@ public class StockService {
             portfolioRepository.save(portfolio);
 
         } else {
-            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(member.getId(), spot.getId())
+            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(user.getId(), spot.getId())
                     .orElseThrow(() -> new CustomException("INSUFFICIENT_STOCK", "보유하고 있지 않은 관광지 주식은 매도할 수 없습니다."));
 
             if (portfolio.getQuantity().compareTo(request.getQuantity()) < 0) {
                 throw new CustomException("INSUFFICIENT_STOCK", "매도하려는 수량이 보유 수량보다 많습니다.");
             }
 
-            member.setBalance(member.getBalance().add(totalAmount));
-            memberRepository.save(member);
+            user.setBalance(user.getBalance().add(totalAmount));
+            userRepository.save(user);
 
             BigDecimal remainingQuantity = portfolio.getQuantity().subtract(request.getQuantity());
             if (remainingQuantity.compareTo(BigDecimal.ZERO) == 0) {
@@ -109,7 +109,7 @@ public class StockService {
         }
 
         Transaction transaction = Transaction.builder()
-                .memberId(member.getId())
+                .memberId(user.getId())
                 .spotId(spot.getId())
                 .type(type)
                 .quantity(request.getQuantity())
@@ -119,13 +119,13 @@ public class StockService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", member.getNickname(), type, spot.getName(), request.getQuantity(), spot.getCurrentPrice());
+        log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", user.getNickname(), type, spot.getName(), request.getQuantity(), spot.getCurrentPrice());
         return transactionRepository.save(transaction);
     }
 
     @Transactional(readOnly = true)
     public MemberAssetResponse getMemberAssets(Long memberId, String sort) {
-        Member member = memberRepository.findById(memberId)
+        User user = userRepository.findById(memberId)
                 .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + memberId));
 
         List<Portfolio> portfolios = portfolioRepository.findByMemberId(memberId);
@@ -179,7 +179,7 @@ public class StockService {
             }
         }
 
-        BigDecimal totalAssetValue = member.getBalance().add(totalStockValue);
+        BigDecimal totalAssetValue = user.getBalance().add(totalStockValue);
         BigDecimal totalProfitLossRate = BigDecimal.ZERO;
         if (totalStockPurchaseCost.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal diff = totalStockValue.subtract(totalStockPurchaseCost);
@@ -187,9 +187,9 @@ public class StockService {
         }
 
         return MemberAssetResponse.builder()
-                .memberId(member.getId())
-                .username(member.getNickname())
-                .cashBalance(member.getBalance())
+                .memberId(user.getId())
+                .username(user.getNickname())
+                .cashBalance(user.getBalance())
                 .totalStockValue(totalStockValue)
                 .totalAssetValue(totalAssetValue)
                 .totalProfitLossRate(totalProfitLossRate)

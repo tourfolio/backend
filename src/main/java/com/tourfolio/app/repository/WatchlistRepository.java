@@ -11,9 +11,9 @@ import java.util.Optional;
 @Repository
 public interface WatchlistRepository extends JpaRepository<Watchlist, Long> {
 
-    Optional<Watchlist> findByMemberIdAndSpotId(Long memberId, Long spotId);
+    Optional<Watchlist> findByUserIdAndSpotId(Long userId, Long spotId);
 
-    List<Watchlist> findByMemberIdOrderByCreatedAtDesc(Long memberId);
+    List<Watchlist> findByUserIdOrderByCreatedAtDesc(Long userId);
 
-    void deleteByMemberIdAndSpotId(Long memberId, Long spotId);
+    void deleteByUserIdAndSpotId(Long userId, Long spotId);
 }

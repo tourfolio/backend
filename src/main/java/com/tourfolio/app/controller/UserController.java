@@ -2,7 +2,7 @@ package com.tourfolio.app.controller;
 
 import com.tourfolio.app.dto.ChargeRequest;
 import com.tourfolio.app.dto.ProfileUpdateRequest;
-import com.tourfolio.app.entity.Member;
+import com.tourfolio.app.entity.User;
 import com.tourfolio.app.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -30,11 +30,11 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "유효하지 않은 충전 금액"),
             @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
     })
-    public ResponseEntity<Member> chargeBalance(@Valid @RequestBody ChargeRequest request) {
+    public ResponseEntity<User> chargeBalance(@Valid @RequestBody ChargeRequest request) {
         log.info("POST /api/v1/user/charge - 자산 충전 요청: memberId={}, amount={}", 
                 request.getMemberId(), request.getAmount());
-        Member member = userService.chargeBalance(request.getMemberId(), request.getAmount());
-        return ResponseEntity.ok(member);
+        User user = userService.chargeBalance(request.getMemberId(), request.getAmount());
+        return ResponseEntity.ok(user);
     }
 
     @PutMapping("/profile")
@@ -44,12 +44,12 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "이미 사용 중인 닉네임 또는 유효하지 않은 요청"),
             @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
     })
-    public ResponseEntity<Member> updateProfile(
+    public ResponseEntity<User> updateProfile(
             @RequestParam Long memberId,
             @Valid @RequestBody ProfileUpdateRequest request) {
         log.info("PUT /api/v1/user/profile - 프로필 수정 요청: memberId={}, newNickname={}", 
                 memberId, request.getNickname());
-        Member member = userService.updateProfile(memberId, request.getNickname());
-        return ResponseEntity.ok(member);
+        User user = userService.updateProfile(memberId, request.getNickname());
+        return ResponseEntity.ok(user);
     }
 }

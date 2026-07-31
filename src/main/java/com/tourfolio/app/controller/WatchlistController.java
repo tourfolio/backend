@@ -26,48 +26,48 @@ public class WatchlistController {
     private final WatchlistService watchlistService;
 
     @PostMapping("/{spotId}")
-    @Operation(summary = "관심목록 등록", description = "회원이 특정 관광 주식을 관심목록에 추가합니다.")
+    @Operation(summary = "관심목록 등록", description = "사용자가 특정 관광 주식을 관심목록에 추가합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "관심목록 등록 성공"),
             @ApiResponse(responseCode = "400", description = "이미 등록된 종목 또는 유효하지 않은 요청"),
-            @ApiResponse(responseCode = "404", description = "회원 또는 주식 종목을 찾을 수 없음")
+            @ApiResponse(responseCode = "404", description = "사용자 또는 주식 종목을 찾을 수 없음")
     })
     public ResponseEntity<Watchlist> addToWatchlist(
             @PathVariable Long spotId,
-            @Parameter(description = "회원 ID", required = true, example = "1")
-            @RequestParam Long memberId) {
-        log.info("POST /api/watchlist/{} - 관심 등록: memberId={}", spotId, memberId);
-        Watchlist watchlist = watchlistService.addToWatchlist(memberId, spotId);
+            @Parameter(description = "사용자 ID", required = true, example = "1")
+            @RequestParam Long userId) {
+        log.info("POST /api/watchlist/{} - 관심 등록: userId={}", spotId, userId);
+        Watchlist watchlist = watchlistService.addToWatchlist(userId, spotId);
         return ResponseEntity.ok(watchlist);
     }
 
     @DeleteMapping("/{spotId}")
-    @Operation(summary = "관심목록 삭제", description = "회원의 관심목록에서 특정 관광 주식을 제거합니다.")
+    @Operation(summary = "관심목록 삭제", description = "사용자의 관심목록에서 특정 관광 주식을 제거합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "관심목록 삭제 성공"),
             @ApiResponse(responseCode = "400", description = "관심목록에 없는 종목 또는 유효하지 않은 요청"),
-            @ApiResponse(responseCode = "404", description = "회원 또는 주식 종목을 찾을 수 없음")
+            @ApiResponse(responseCode = "404", description = "사용자 또는 주식 종목을 찾을 수 없음")
     })
     public ResponseEntity<Void> removeFromWatchlist(
             @PathVariable Long spotId,
-            @Parameter(description = "회원 ID", required = true, example = "1")
-            @RequestParam Long memberId) {
-        log.info("DELETE /api/watchlist/{} - 관심 해제: memberId={}", spotId, memberId);
-        watchlistService.removeFromWatchlist(memberId, spotId);
+            @Parameter(description = "사용자 ID", required = true, example = "1")
+            @RequestParam Long userId) {
+        log.info("DELETE /api/watchlist/{} - 관심 해제: userId={}", spotId, userId);
+        watchlistService.removeFromWatchlist(userId, spotId);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping
-    @Operation(summary = "관심목록 조회", description = "회원이 등록한 관심 관광 주식 목록을 조회합니다.")
+    @Operation(summary = "관심목록 조회", description = "사용자가 등록한 관심 관광 주식 목록을 조회합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "관심목록 조회 성공"),
-            @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     public ResponseEntity<List<WatchlistResponse>> getWatchlist(
-            @Parameter(description = "회원 ID", required = true, example = "1")
-            @RequestParam Long memberId) {
-        log.info("GET /api/watchlist - 내 관심 목록 조회: memberId={}", memberId);
-        List<WatchlistResponse> watchlist = watchlistService.getWatchlist(memberId);
+            @Parameter(description = "사용자 ID", required = true, example = "1")
+            @RequestParam Long userId) {
+        log.info("GET /api/watchlist - 내 관심 목록 조회: userId={}", userId);
+        List<WatchlistResponse> watchlist = watchlistService.getWatchlist(userId);
         return ResponseEntity.ok(watchlist);
     }
 }
