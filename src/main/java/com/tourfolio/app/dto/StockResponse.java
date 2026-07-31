@@ -16,9 +16,11 @@ public class StockResponse {
     private Long id;
     private String name;
     private String areaCode;
+    private String regionName;
     private Integer tier;
     private BigDecimal currentPrice;
     private BigDecimal prevPrice;
     private BigDecimal changeRate;
     private LocalDateTime lastUpdated;
+    private String imageUrl;
 }

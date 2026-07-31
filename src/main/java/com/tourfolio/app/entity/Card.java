@@ -42,6 +42,9 @@ public class Card {
     @Column(length = 200)
     private String phrase;
 
+    @Column(length = 500)
+    private String imageUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

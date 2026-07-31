@@ -9,6 +9,7 @@ import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,10 +31,40 @@ public class StockController {
     private final StockService stockService;
 
     @GetMapping("/stocks")
-    @Operation(summary = "전체 주식 목록 조회", description = "관광지 기반 가상 주식 전체 목록과 현재가, 등락률을 조회합니다.")
-    public ResponseEntity<List<StockResponse>> getAllStocks() {
-        log.info("GET /api/stocks - 전광판 시세조회판 트리거 호출");
-        return ResponseEntity.ok(stockService.getAllStocks());
+    @Operation(
+            summary = "주식 목록 조회 (통합)",
+            description = "지역, 키워드, 정렬 기준으로 관광 주식을 검색합니다. 모든 파라미터는 선택적이며, 기본값으로 전체 목록을 등락률 내림차순으로 반환합니다."
+    )
+    public ResponseEntity<List<StockResponse>> getAllStocks(
+            @Parameter(
+                    description = "지역 필터 (예: '11', '26' 또는 'ALL'/'전체' 수신 시 전체 조회)",
+                    example = "ALL",
+                    required = false
+            )
+            @RequestParam(required = false, defaultValue = "ALL") String region,
+
+            @Parameter(
+                    description = "검색어 (주식/관광지명, 지역명 검색)",
+                    example = "해운대",
+                    required = false
+            )
+            @RequestParam(required = false) String keyword,
+
+            @Parameter(
+                    description = "정렬 기준 (price, changeRate, name, tier)",
+                    example = "changeRate",
+                    required = false
+            )
+            @RequestParam(required = false, defaultValue = "changeRate") String sortBy,
+
+            @Parameter(
+                    description = "정렬 방향 (ASC, DESC)",
+                    example = "DESC",
+                    required = false
+            )
+            @RequestParam(required = false, defaultValue = "DESC") String sortOrder) {
+        log.info("GET /api/stocks - 주식 목록 통합 조회: region={}, keyword={}, sortBy={}, sortOrder={}", region, keyword, sortBy, sortOrder);
+        return ResponseEntity.ok(stockService.searchStocksUnified(region, keyword, sortBy, sortOrder));
     }
 
     @GetMapping("/stocks/top-gainers")
@@ -55,16 +86,6 @@ public class StockController {
     public ResponseEntity<List<RegionalIndexResponse>> getRegionalIndex() {
         log.info("GET /api/stocks/regional-index - 지역별 주요 지수 조회");
         return ResponseEntity.ok(stockService.getRegionalIndex());
-    }
-
-    @GetMapping("/stocks/search")
-    @Operation(summary = "주식 검색 및 정렬", description = "지역, 테마, 정렬 기준으로 관광 주식을 검색합니다.")
-    public ResponseEntity<List<StockResponse>> searchStocks(
-            @RequestParam(required = false) String region,
-            @RequestParam(required = false) String theme,
-            @RequestParam(required = false, defaultValue = "change_rate") String sort) {
-        log.info("GET /api/stocks/search - 종목 탐색: region={}, theme={}, sort={}", region, theme, sort);
-        return ResponseEntity.ok(stockService.searchStocks(region, theme, sort));
     }
 
     @GetMapping("/price-history/{spotId}")

@@ -359,11 +359,13 @@ public class StockService {
                 .id(spot.getId())
                 .name(spot.getName())
                 .areaCode(spot.getAreaCode())
+                .regionName(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
                 .tier(spot.getTier())
                 .currentPrice(spot.getCurrentPrice())
                 .prevPrice(spot.getPrevPrice())
                 .changeRate(changeRate)
                 .lastUpdated(spot.getLastUpdated())
+                .imageUrl(spot.getImageUrl())
                 .build();
     }
 
@@ -445,6 +447,73 @@ public class StockService {
         return spots.stream()
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
+    }
+
+    public List<StockResponse> searchStocksUnified(String region, String keyword, String sortBy, String sortOrder) {
+        List<Spot> spots;
+        String normalizedRegion = ("ALL".equals(region) || "전체".equals(region) || region == null || region.trim().isEmpty()) ? null : region;
+        String normalizedKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        String normalizedSortBy = (sortBy == null || sortBy.trim().isEmpty()) ? "changeRate" : sortBy;
+        String normalizedSortOrder = (sortOrder == null || sortOrder.trim().isEmpty()) ? "DESC" : sortOrder.toUpperCase();
+
+        // 기본 조회
+        if (normalizedKeyword != null) {
+            // 키워드 검색: 이름 또는 지역명 검색
+            spots = spotRepository.findAll().stream()
+                    .filter(spot -> normalizedRegion == null || normalizedRegion.equals(spot.getRegion()) || normalizedRegion.equals(spot.getAreaCode()))
+                    .filter(spot -> spot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
+                                   (spot.getRegion() != null && spot.getRegion().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
+                                   (spot.getAreaName() != null && spot.getAreaName().toLowerCase().contains(normalizedKeyword.toLowerCase())))
+                    .collect(Collectors.toList());
+        } else {
+            // 지역 필터만 적용
+            if (normalizedRegion != null) {
+                spots = spotRepository.findByRegion(normalizedRegion);
+            } else {
+                spots = spotRepository.findAll();
+            }
+        }
+
+        // 정렬 적용
+        switch (normalizedSortBy) {
+            case "price":
+                spots = "DESC".equals(normalizedSortOrder) ?
+                        spots.stream().sorted(Comparator.comparing(Spot::getCurrentPrice).reversed()).collect(Collectors.toList()) :
+                        spots.stream().sorted(Comparator.comparing(Spot::getCurrentPrice)).collect(Collectors.toList());
+                break;
+            case "changeRate":
+                spots = "DESC".equals(normalizedSortOrder) ?
+                        spots.stream().sorted(Comparator.comparing((Spot s) -> calculateChangeRate(s)).reversed()).collect(Collectors.toList()) :
+                        spots.stream().sorted(Comparator.comparing(this::calculateChangeRate)).collect(Collectors.toList());
+                break;
+            case "name":
+                spots = "DESC".equals(normalizedSortOrder) ?
+                        spots.stream().sorted(Comparator.comparing(Spot::getName).reversed()).collect(Collectors.toList()) :
+                        spots.stream().sorted(Comparator.comparing(Spot::getName)).collect(Collectors.toList());
+                break;
+            case "tier":
+                spots = "DESC".equals(normalizedSortOrder) ?
+                        spots.stream().sorted(Comparator.comparing(Spot::getTier).reversed()).collect(Collectors.toList()) :
+                        spots.stream().sorted(Comparator.comparing(Spot::getTier)).collect(Collectors.toList());
+                break;
+            default:
+                // 기본: changeRate DESC
+                spots = spots.stream().sorted(Comparator.comparing((Spot s) -> calculateChangeRate(s)).reversed()).collect(Collectors.toList());
+                break;
+        }
+
+        return spots.stream()
+                .map(this::mapToStockResponse)
+                .collect(Collectors.toList());
+    }
+
+    private BigDecimal calculateChangeRate(Spot spot) {
+        if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
+            return spot.getCurrentPrice().subtract(spot.getPrevPrice())
+                    .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+        }
+        return BigDecimal.ZERO;
     }
 
     public List<PriceHistoryResponse> getPriceHistory(Long spotId, String period) {
