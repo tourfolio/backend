@@ -200,16 +200,19 @@ public class StockService {
     @Transactional
     public void updateDailyStockPrices() {
         log.info("=== 관광 지표 기반 주가 정산 배치 시작 ===");
-        
+
         // 캐시 초기화
         tourIndicatorService.clearCache();
-        
+
         // 전체 종목 조회
         List<Spot> spots = spotRepository.findAll();
         log.info("전체 종목 수: {}", spots.size());
-        
+
         // S는 전국 단일 계수이므로 배치당 한 번만 산출한다
         Double s = tourIndicatorService.collectS();
+
+        int successCount = 0;
+        int failureCount = 0;
 
         // 종목별 반복
         for (Spot spot : spots) {
@@ -253,6 +256,7 @@ public class StockService {
                 // price_history INSERT (지표 원값까지 함께 보존)
                 savePriceHistory(spot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
 
+                successCount++;
                 log.info("주가 정산 완료: 종목={}, 어제={}, 오늘={}, 변동률={}%, P={}, D={}, R={}, S={}",
                         spot.getName(), yesterdayClose, newPrice,
                         changeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
@@ -260,6 +264,7 @@ public class StockService {
                         String.format("%.3f", r), s);
 
             } catch (Exception e) {
+                failureCount++;
                 log.error("주가 정산 실패: spotId={}, name={}, error={}",
                         spot.getId(), spot.getName(), e.getMessage());
                 // 실패 시 가우시안 랜덤워크 폴백
@@ -268,6 +273,8 @@ public class StockService {
         }
 
         log.info("=== 관광 지표 기반 주가 정산 배치 완료 ===");
+        log.info("📊 배치 결과: 성공 {}건, 실패 {}건 (총 {}건의 주가 이력이 price_history에 저장되었습니다.)",
+                successCount, failureCount, successCount);
     }
 
     void savePriceHistory(Spot spot, LocalDate tradeDate, BigDecimal price, BigDecimal changeRate,
