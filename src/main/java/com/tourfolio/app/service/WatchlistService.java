@@ -4,9 +4,11 @@ package com.tourfolio.app.service;
 import com.tourfolio.app.dto.WatchlistResponse;
 import com.tourfolio.app.entity.Watchlist;
 import com.tourfolio.app.entity.Spot;
+import com.tourfolio.app.entity.Member;
 import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.repository.WatchlistRepository;
 import com.tourfolio.app.repository.SpotRepository;
+import com.tourfolio.app.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,9 +27,13 @@ public class WatchlistService {
 
     private final WatchlistRepository watchlistRepository;
     private final SpotRepository spotRepository;
+    private final MemberRepository memberRepository;
 
     @Transactional(rollbackFor = Exception.class)
     public Watchlist addToWatchlist(Long memberId, Long spotId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "존재하지 않는 회원입니다. ID: " + memberId));
+
         Spot spot = spotRepository.findById(spotId)
                 .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "상장되지 않은 관광 자산 종목입니다. ID: " + spotId));
 
@@ -47,6 +53,9 @@ public class WatchlistService {
 
     @Transactional(rollbackFor = Exception.class)
     public void removeFromWatchlist(Long memberId, Long spotId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "존재하지 않는 회원입니다. ID: " + memberId));
+
         Watchlist watchlist = watchlistRepository.findByMemberIdAndSpotId(memberId, spotId)
                 .orElseThrow(() -> new CustomException("NOT_IN_WATCHLIST", "관심 목록에 없는 종목입니다."));
 
@@ -55,6 +64,9 @@ public class WatchlistService {
     }
 
     public List<WatchlistResponse> getWatchlist(Long memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "존재하지 않는 회원입니다. ID: " + memberId));
+
         List<Watchlist> watchlists = watchlistRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
 
         return watchlists.stream()
