@@ -7,6 +7,7 @@ import com.tourfolio.app.dto.MemberAssetResponse;
 import com.tourfolio.app.dto.PriceHistoryResponse;
 import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.dto.StockChartResponse;
+import com.tourfolio.app.dto.PortfolioSummaryResponse;
 import com.tourfolio.app.entity.Spot;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.entity.User;
@@ -577,5 +578,68 @@ public class StockService {
                         .price(ph.getPrice())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public PortfolioSummaryResponse getPortfolioSummary(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException("USER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + userId));
+
+        List<Portfolio> portfolios = portfolioRepository.findByMemberId(userId);
+
+        BigDecimal totalEvaluation = BigDecimal.ZERO;
+        BigDecimal totalPurchase = BigDecimal.ZERO;
+
+        for (Portfolio p : portfolios) {
+            Spot spot = spotRepository.findById(p.getSpotId()).orElse(null);
+            if (spot == null) continue;
+
+            BigDecimal evaluationAmount = spot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal purchaseCost = p.getAveragePurchasePrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+
+            totalEvaluation = totalEvaluation.add(evaluationAmount);
+            totalPurchase = totalPurchase.add(purchaseCost);
+        }
+
+        BigDecimal totalAsset = user.getBalance().add(totalEvaluation);
+        BigDecimal totalProfitLoss = totalEvaluation.subtract(totalPurchase);
+        BigDecimal profitRate = BigDecimal.ZERO;
+        if (totalPurchase.compareTo(BigDecimal.ZERO) > 0) {
+            profitRate = totalProfitLoss.divide(totalPurchase, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+        }
+
+        // 자산 추이 데이터 생성 (최근 7일)
+        List<PortfolioSummaryResponse.AssetHistoryItem> assetHistory = generateAssetHistory(userId, totalAsset);
+
+        return PortfolioSummaryResponse.builder()
+                .totalAsset(totalAsset)
+                .totalEvaluation(totalEvaluation)
+                .totalPurchase(totalPurchase)
+                .totalProfitLoss(totalProfitLoss)
+                .profitRate(profitRate)
+                .cashBalance(user.getBalance())
+                .assetHistory(assetHistory)
+                .build();
+    }
+
+    private List<PortfolioSummaryResponse.AssetHistoryItem> generateAssetHistory(Long userId, BigDecimal currentTotalAsset) {
+        List<PortfolioSummaryResponse.AssetHistoryItem> history = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+
+        // 최근 7일 데이터 생성 (실제 데이터가 없으면 현재 자산으로 대체)
+        for (int i = 6; i >= 0; i--) {
+            LocalDate date = today.minusDays(i);
+            String formattedDate = String.format("%02d/%02d", date.getMonthValue(), date.getDayOfMonth());
+
+            // 실제 자산 이력 데이터가 있다면 조회, 없으면 현재 자산 사용
+            // TODO: 자산 이력 테이블이 구현되면 실제 데이터 조회 로직 추가
+            // 현재는 임시로 현재 자산으로 반환
+            history.add(PortfolioSummaryResponse.AssetHistoryItem.builder()
+                    .date(formattedDate)
+                    .totalAsset(currentTotalAsset)
+                    .build());
+        }
+
+        return history;
     }
 }

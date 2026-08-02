@@ -7,6 +7,7 @@ import com.tourfolio.app.dto.MemberAssetResponse;
 import com.tourfolio.app.dto.PriceHistoryResponse;
 import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.dto.StockChartResponse;
+import com.tourfolio.app.dto.PortfolioSummaryResponse;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -132,6 +133,19 @@ public class StockController {
             @RequestParam(required = false, defaultValue = "profit_rate") String sort) {
         log.info("GET /api/portfolio - 유저 포트폴리오 자산 스크리너 조회 ID: {}, sort={}", memberId, sort);
         return ResponseEntity.ok(stockService.getMemberAssets(memberId, sort));
+    }
+
+    @GetMapping("/portfolio/summary")
+    @Operation(summary = "포트폴리오 요약 조회", description = "투자 홈 메인용 총 평가금액, 평가손익, 수익률, 자산 추이 데이터를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "포트폴리오 요약 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(
+            @Parameter(description = "사용자 ID", required = true)
+            @RequestParam Long userId) {
+        log.info("GET /api/portfolio/summary - 포트폴리오 요약 조회: userId={}", userId);
+        return ResponseEntity.ok(stockService.getPortfolioSummary(userId));
     }
 
     @PostMapping("/stocks/update-prices")
