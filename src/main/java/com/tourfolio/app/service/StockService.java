@@ -6,6 +6,7 @@ import com.tourfolio.app.dto.TradeRequest;
 import com.tourfolio.app.dto.MemberAssetResponse;
 import com.tourfolio.app.dto.PriceHistoryResponse;
 import com.tourfolio.app.dto.RegionalIndexResponse;
+import com.tourfolio.app.dto.StockChartResponse;
 import com.tourfolio.app.entity.Spot;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.entity.User;
@@ -547,6 +548,33 @@ public class StockService {
                         .price(ph.getPrice())
                         .changeRate(ph.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP))
                         .tsScore(ph.getTsScore())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    public List<StockChartResponse> getStockChart(Long spotId, String period) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = switch (period.toUpperCase()) {
+            case "1W" -> endDate.minusDays(7);
+            case "3M" -> endDate.minusDays(90);
+            case "1Y" -> endDate.minusDays(365);
+            case "5Y" -> endDate.minusDays(1825);
+            case "ALL" -> LocalDate.of(2000, 1, 1);
+            default -> endDate.minusDays(7);
+        };
+
+        List<PriceHistory> histories;
+        if (period.toUpperCase().equals("ALL")) {
+            histories = priceHistoryRepository.findBySpotIdOrderByTradeDateAsc(spotId);
+        } else {
+            histories = priceHistoryRepository.findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(
+                    spotId, startDate, endDate);
+        }
+
+        return histories.stream()
+                .map(ph -> StockChartResponse.builder()
+                        .date(ph.getTradeDate())
+                        .price(ph.getPrice())
                         .build())
                 .collect(Collectors.toList());
     }

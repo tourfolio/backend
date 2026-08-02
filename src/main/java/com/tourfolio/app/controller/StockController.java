@@ -6,6 +6,7 @@ import com.tourfolio.app.dto.TradeRequest;
 import com.tourfolio.app.dto.MemberAssetResponse;
 import com.tourfolio.app.dto.PriceHistoryResponse;
 import com.tourfolio.app.dto.RegionalIndexResponse;
+import com.tourfolio.app.dto.StockChartResponse;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -95,6 +96,20 @@ public class StockController {
             @RequestParam(required = false, defaultValue = "1w") String period) {
         log.info("GET /api/price-history/{} - 차트 데이터 조회: period={}", spotId, period);
         return ResponseEntity.ok(stockService.getPriceHistory(spotId, period));
+    }
+
+    @GetMapping("/stocks/{spotId}/chart")
+    @Operation(summary = "주식 차트 데이터 조회", description = "실제 DB price_history 테이블 기반 기간별 차트 데이터를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "차트 데이터 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "주식 종목을 찾을 수 없음")
+    })
+    public ResponseEntity<List<StockChartResponse>> getStockChart(
+            @PathVariable Long spotId,
+            @Parameter(description = "기간 (1W, 3M, 1Y, 5Y, ALL)", example = "1W", required = false)
+            @RequestParam(required = false, defaultValue = "1W") String period) {
+        log.info("GET /api/stocks/{}/chart - 차트 데이터 조회: period={}", spotId, period);
+        return ResponseEntity.ok(stockService.getStockChart(spotId, period));
     }
 
     @PostMapping("/stocks/trade")
