@@ -35,7 +35,7 @@ public class StockController {
     @GetMapping("/stocks")
     @Operation(
             summary = "주식 목록 조회 (통합)",
-            description = "지역, 키워드, 정렬 기준으로 관광 주식을 검색합니다. 모든 파라미터는 선택적이며, 기본값으로 전체 목록을 등락률 내림차순으로 반환합니다."
+            description = "지역, 키워드, 태그, 정렬 기준으로 관광 주식을 검색합니다. 모든 파라미터는 선택적이며, 기본값으로 전체 목록을 등락률 내림차순으로 반환합니다."
     )
     public ResponseEntity<List<StockResponse>> getAllStocks(
             @Parameter(
@@ -53,6 +53,13 @@ public class StockController {
             @RequestParam(required = false) String keyword,
 
             @Parameter(
+                    description = "태그 필터 (예: '자연', '문화', '역사')",
+                    example = "자연",
+                    required = false
+            )
+            @RequestParam(required = false) String tag,
+
+            @Parameter(
                     description = "정렬 기준 (price, changeRate, name, tier)",
                     example = "changeRate",
                     required = false
@@ -65,8 +72,8 @@ public class StockController {
                     required = false
             )
             @RequestParam(required = false, defaultValue = "DESC") String sortOrder) {
-        log.info("GET /api/stocks - 주식 목록 통합 조회: region={}, keyword={}, sortBy={}, sortOrder={}", region, keyword, sortBy, sortOrder);
-        return ResponseEntity.ok(stockService.searchStocksUnified(region, keyword, sortBy, sortOrder));
+        log.info("GET /api/stocks - 주식 목록 통합 조회: region={}, keyword={}, tag={}, sortBy={}, sortOrder={}", region, keyword, tag, sortBy, sortOrder);
+        return ResponseEntity.ok(stockService.searchStocksUnified(region, keyword, tag, sortBy, sortOrder));
     }
 
     @GetMapping("/stocks/top-gainers")
@@ -81,6 +88,13 @@ public class StockController {
     public ResponseEntity<List<StockResponse>> getTopLosers() {
         log.info("GET /api/stocks/top-losers - 급락 TOP 3 조회");
         return ResponseEntity.ok(stockService.getTopLosers());
+    }
+
+    @GetMapping("/stocks/trending")
+    @Operation(summary = "지금 뜨는 여행지 조회", description = "등락률 기준 상위 10개 인기 여행지 주식을 조회합니다.")
+    public ResponseEntity<List<StockResponse>> getTrendingStocks() {
+        log.info("GET /api/stocks/trending - 지금 뜨는 여행지 조회");
+        return ResponseEntity.ok(stockService.getTrendingStocks());
     }
 
     @GetMapping("/stocks/regional-index")

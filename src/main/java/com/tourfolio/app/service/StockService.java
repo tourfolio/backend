@@ -458,10 +458,11 @@ public class StockService {
                 .collect(Collectors.toList());
     }
 
-    public List<StockResponse> searchStocksUnified(String region, String keyword, String sortBy, String sortOrder) {
+    public List<StockResponse> searchStocksUnified(String region, String keyword, String tag, String sortBy, String sortOrder) {
         List<Spot> spots;
         String normalizedRegion = ("ALL".equals(region) || "전체".equals(region) || region == null || region.trim().isEmpty()) ? null : region;
         String normalizedKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
+        String normalizedTag = (tag == null || tag.trim().isEmpty()) ? null : tag.trim();
         String normalizedSortBy = (sortBy == null || sortBy.trim().isEmpty()) ? "changeRate" : sortBy;
         String normalizedSortOrder = (sortOrder == null || sortOrder.trim().isEmpty()) ? "DESC" : sortOrder.toUpperCase();
 
@@ -470,6 +471,7 @@ public class StockService {
             // 키워드 검색: 이름 또는 지역명 검색
             spots = spotRepository.findAll().stream()
                     .filter(spot -> normalizedRegion == null || normalizedRegion.equals(spot.getRegion()) || normalizedRegion.equals(spot.getAreaCode()))
+                    .filter(spot -> normalizedTag == null || (spot.getThemeTag() != null && spot.getThemeTag().contains(normalizedTag)))
                     .filter(spot -> spot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
                                    (spot.getRegion() != null && spot.getRegion().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
                                    (spot.getAreaName() != null && spot.getAreaName().toLowerCase().contains(normalizedKeyword.toLowerCase())))
@@ -480,6 +482,12 @@ public class StockService {
                 spots = spotRepository.findByRegion(normalizedRegion);
             } else {
                 spots = spotRepository.findAll();
+            }
+            // 태그 필터 적용
+            if (normalizedTag != null) {
+                spots = spots.stream()
+                        .filter(spot -> spot.getThemeTag() != null && spot.getThemeTag().contains(normalizedTag))
+                        .collect(Collectors.toList());
             }
         }
 
@@ -641,5 +649,16 @@ public class StockService {
         }
 
         return history;
+    }
+
+    @Transactional(readOnly = true)
+    public List<StockResponse> getTrendingStocks() {
+        List<Spot> allSpots = spotRepository.findAll();
+        // 등락률 기준 상위 10개 종목 반환
+        return allSpots.stream()
+                .sorted(Comparator.comparing((Spot s) -> calculateChangeRate(s)).reversed())
+                .limit(10)
+                .map(this::mapToStockResponse)
+                .collect(Collectors.toList());
     }
 }
