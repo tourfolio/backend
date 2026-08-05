@@ -54,42 +54,42 @@ public final class NormalizationConstants {
     }
 
     /**
-     * P 값 정규화: (P값 - 8.31) / 91.69
+     * P 값 정규화: API_Value / 100 (최대 1.0)
      */
     public static double normalizeP(double pValue) {
-        double normalized = (pValue - P_MIN) / P_RANGE;
+        double normalized = pValue / 100.0;
         return clampNormalized(normalized);
     }
 
     /**
-     * D 체류 값 정규화: (체류값 - 60.46) / 64.74
+     * D 체류 값 정규화: 체류값 / 200
      */
     public static double normalizeDStay(double stayValue) {
-        double normalized = (stayValue - D_STAY_MIN) / D_STAY_RANGE;
+        double normalized = stayValue / 200.0;
         return clampNormalized(normalized);
     }
 
     /**
-     * D 소비 값 정규화: (소비값 - 54.09) / 92.93
+     * D 소비 값 정규화: 소비값 / 200
      */
     public static double normalizeDSpend(double spendValue) {
-        double normalized = (spendValue - D_SPEND_MIN) / D_SPEND_RANGE;
+        double normalized = spendValue / 200.0;
         return clampNormalized(normalized);
     }
 
     /**
-     * R 서비스 값 정규화: (서비스값 - 63.55) / 88.94
+     * R 서비스 값 정규화: 서비스값 / 200
      */
     public static double normalizeRService(double serviceValue) {
-        double normalized = (serviceValue - R_SERVICE_MIN) / R_SERVICE_RANGE;
+        double normalized = serviceValue / 200.0;
         return clampNormalized(normalized);
     }
 
     /**
-     * R 문화 값 정규화: (문화값 - 64.24) / 71.97
+     * R 문화 값 정규화: 문화값 / 200
      */
     public static double normalizeRCulture(double cultureValue) {
-        double normalized = (cultureValue - R_CULTURE_MIN) / R_CULTURE_RANGE;
+        double normalized = cultureValue / 200.0;
         return clampNormalized(normalized);
     }
 }

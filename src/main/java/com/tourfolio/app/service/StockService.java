@@ -269,8 +269,8 @@ public class StockService {
                 failureCount++;
                 log.error("주가 정산 실패: spotId={}, name={}, error={}",
                         spot.getId(), spot.getName(), e.getMessage());
-                // 실패 시 가우시안 랜덤워크 폴백
-                applyGaussianRandomWalkFallback(spot);
+                // 실패 시 현재 주가를 그대로 유지 (난수 폴백 제거)
+                applyPriceHoldFallback(spot);
             }
         }
 
@@ -307,43 +307,21 @@ public class StockService {
         return value != null ? BigDecimal.valueOf(value) : null;
     }
 
-    // 가우시안 랜덤워크 폴백: -5% ~ +5% 내외로 자연스럽게 상시 변동
-    private void applyGaussianRandomWalkFallback(Spot spot) {
-        // 가우시안 분포 기반 랜덤 변동률 생성 (평균 0, 표준편차 0.02)
-        java.util.Random random = new java.util.Random();
-        double gaussian = random.nextGaussian();
-        double changeRate = gaussian * 0.02; // 약 ±5% 범위
-        
-        // -5% ~ +5% 범위 제한
-        if (changeRate > 0.05) changeRate = 0.05;
-        if (changeRate < -0.05) changeRate = -0.05;
-        
-        BigDecimal randomChangeRate = BigDecimal.valueOf(changeRate).setScale(4, RoundingMode.HALF_UP);
-        BigDecimal newPrice = calculateNewPrice(spot.getCurrentPrice(), randomChangeRate);
+    // 폴백: API 실패 시 현재 주가를 그대로 유지 (난수 제거)
+    private void applyPriceHoldFallback(Spot spot) {
+        BigDecimal currentPrice = spot.getCurrentPrice();
+        BigDecimal changeRate = BigDecimal.ZERO;
 
-        if (newPrice.compareTo(BigDecimal.valueOf(100)) < 0) {
-            newPrice = BigDecimal.valueOf(100);
-        }
-
-        // 변동률은 어제 종가(= 갱신 전 currentPrice) 대비로 계산한다
-        BigDecimal yesterdayClose = spot.getCurrentPrice();
-        BigDecimal changeRateForHistory = BigDecimal.ZERO;
-        if (yesterdayClose.compareTo(BigDecimal.ZERO) > 0) {
-            changeRateForHistory = newPrice.subtract(yesterdayClose)
-                    .divide(yesterdayClose, 4, RoundingMode.HALF_UP);
-        }
-
-        spot.setPrevPrice(yesterdayClose);
-        spot.setCurrentPrice(newPrice);
+        spot.setPrevPrice(currentPrice);
+        spot.setCurrentPrice(currentPrice);
         spot.setLastUpdated(LocalDateTime.now());
         spotRepository.save(spot);
 
-        savePriceHistory(spot, LocalDate.now(), newPrice, changeRateForHistory,
+        savePriceHistory(spot, LocalDate.now(), currentPrice, changeRate,
                 spot.getTourismDataWeight(), null, null, null, null);
 
-        log.info("가우시안 랜덤워크 폴백 엔진 구동 -> 종목: {}, 랜덤 변동률: {}%, 가격: {} -> {}",
-                spot.getName(), randomChangeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
-                yesterdayClose, newPrice);
+        log.info("주가 유지 폴백 적용: 종목={}, 가격={} (변동 없음)",
+                spot.getName(), currentPrice);
     }
 
 

@@ -68,8 +68,10 @@ public class PriceCalculationService {
             double raw = ((tsChange * 0.8) + (us * 0.2)) * s;
             double finalChange = NormalizationConstants.clampFinalChange(raw);
 
-            return ctx.yesterdayPrice().multiply(BigDecimal.valueOf(1.0 + finalChange))
-                    .setScale(0, RoundingMode.HALF_UP);
+            BigDecimal newPrice = ctx.yesterdayPrice().multiply(BigDecimal.valueOf(1.0 + finalChange));
+            // 10원 단위 반올림 처리
+            return newPrice.divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(10));
         } catch (Exception e) {
             log.error("가격 계산 오류: spotId={}, error={}", spot.getId(), e.getMessage());
             return spot.getCurrentPrice();
