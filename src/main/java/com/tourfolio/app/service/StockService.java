@@ -508,13 +508,14 @@ public class StockService {
 
         // 기본 조회
         if (normalizedKeyword != null) {
-            // 키워드 검색: 이름 또는 지역명 검색
+            // 키워드 검색: 이름, 지역명, 태그명 검색
             spots = spotRepository.findAll().stream()
                     .filter(spot -> normalizedRegion == null || normalizedRegion.equals(spot.getRegion()) || normalizedRegion.equals(spot.getAreaCode()))
                     .filter(spot -> normalizedTag == null || (spot.getThemeTag() != null && spot.getThemeTag().contains(normalizedTag)))
                     .filter(spot -> spot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
                                    (spot.getRegion() != null && spot.getRegion().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
-                                   (spot.getAreaName() != null && spot.getAreaName().toLowerCase().contains(normalizedKeyword.toLowerCase())))
+                                   (spot.getAreaName() != null && spot.getAreaName().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
+                                   (spot.getThemeTag() != null && spot.getThemeTag().toLowerCase().contains(normalizedKeyword.toLowerCase())))
                     .collect(Collectors.toList());
         } else {
             // 지역 필터만 적용

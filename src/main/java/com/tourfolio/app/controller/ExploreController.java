@@ -108,7 +108,7 @@ public class ExploreController {
     @GetMapping("/search")
     @Operation(
             summary = "탐색 화면 복합 필터링 검색",
-            description = "키워드, 지역(다중 선택), 테마(다중 선택)를 조합하여 관광지를 검색합니다. 키워드는 관광지명과 태그명 모두 검색합니다. 모든 파라미터는 선택적이며, null이거나 비어있는 경우 해당 조건은 무시됩니다. 검색된 관광지 목록과 총 개수를 반환합니다."
+            description = "키워드, 지역(다중 선택), 테마(다중 선택), 태그(단일 선택)를 조합하여 관광지를 검색합니다. 키워드는 관광지명, 지역명, 태그명 모두 검색합니다. 모든 파라미터는 선택적이며, null이거나 비어있는 경우 해당 조건은 무시됩니다. 검색된 관광지 목록과 총 개수를 반환합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "필터링 검색 성공"),
@@ -117,7 +117,7 @@ public class ExploreController {
     })
     public ResponseEntity<SearchResponse> searchExploreCards(
             @Parameter(
-                    description = "검색어 (관광지명, 태그명 검색)",
+                    description = "검색어 (관광지명, 지역명, 태그명 검색)",
                     example = "해운대",
                     required = false
             )
@@ -135,12 +135,19 @@ public class ExploreController {
                     example = "역사,문화",
                     required = false
             )
-            @RequestParam(required = false) List<String> themes) {
+            @RequestParam(required = false) List<String> themes,
 
-        log.info("GET /api/v1/explore/search - 탐색 화면 복합 필터링 검색 요청: keyword={}, regions={}, themes={}",
-                keyword, regions, themes);
+            @Parameter(
+                    description = "태그 필터 (단일 선택, 예: 궁궐)",
+                    example = "궁궐",
+                    required = false
+            )
+            @RequestParam(required = false) String tag) {
 
-        SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, regions, themes);
+        log.info("GET /api/v1/explore/search - 탐색 화면 복합 필터링 검색 요청: keyword={}, regions={}, themes={}, tag={}",
+                keyword, regions, themes, tag);
+
+        SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, regions, themes, tag);
         return ResponseEntity.ok(searchResult);
     }
 

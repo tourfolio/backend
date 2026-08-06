@@ -432,9 +432,9 @@ public class ExploreService {
 
     // 신규: 복합 필터링 검색 (totalCount 포함)
 
-    public SearchResponse searchSpotsWithTotalCount(String keyword, List<String> regions, List<String> themes) {
+    public SearchResponse searchSpotsWithTotalCount(String keyword, List<String> regions, List<String> themes, String tag) {
 
-        log.info("복합 필터링 검색 시작: keyword={}, regions={}, themes={}", keyword, regions, themes);
+        log.info("복합 필터링 검색 시작: keyword={}, regions={}, themes={}, tag={}", keyword, regions, themes, tag);
 
 
 
@@ -444,9 +444,18 @@ public class ExploreService {
 
         List<String> normalizedThemes = (themes == null || themes.isEmpty()) ? null : themes;
 
+        String normalizedTag = (tag == null || tag.trim().isEmpty()) ? null : tag.trim();
+
 
 
         List<Spot> spots = spotRepository.searchSpotsWithFilters(normalizedKeyword, normalizedRegions, normalizedThemes);
+
+        // 태그 필터 추가 적용
+        if (normalizedTag != null) {
+            spots = spots.stream()
+                    .filter(spot -> spot.getThemeTag() != null && spot.getThemeTag().toLowerCase().contains(normalizedTag.toLowerCase()))
+                    .collect(Collectors.toList());
+        }
 
         List<SearchResponse.SearchSpotItem> items = spots.stream()
 

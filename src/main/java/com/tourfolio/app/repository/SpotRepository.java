@@ -48,7 +48,7 @@ public interface SpotRepository extends JpaRepository<Spot, Long> {
     @Query("SELECT s FROM Spot s WHERE (:keyword IS NULL OR :keyword = '' OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (:areaCode IS NULL OR :areaCode = '' OR s.areaCode = :areaCode) AND (:themeTag IS NULL OR :themeTag = '' OR s.themeTag = :themeTag)")
     List<Spot> searchExploreCards(@Param("keyword") String keyword, @Param("areaCode") String areaCode, @Param("themeTag") String themeTag);
 
-    @Query("SELECT s FROM Spot s WHERE (:keyword IS NULL OR :keyword = '' OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.themeTag) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (COALESCE(:regions, NULL) IS NULL OR s.region IN :regions) AND (COALESCE(:themes, NULL) IS NULL OR s.theme IN :themes)")
+    @Query("SELECT s FROM Spot s WHERE (:keyword IS NULL OR :keyword = '' OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.themeTag) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.region) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.areaName) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND (COALESCE(:regions, NULL) IS NULL OR s.region IN :regions) AND (COALESCE(:themes, NULL) IS NULL OR s.theme IN :themes)")
     List<Spot> searchSpotsWithFilters(@Param("keyword") String keyword, @Param("regions") List<String> regions, @Param("themes") List<String> themes);
 
     @Query("SELECT s FROM Spot s ORDER BY s.tier ASC, s.name ASC")
