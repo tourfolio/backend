@@ -363,49 +363,43 @@ public class StockService {
                 KorService2Dto dto = korService2Client.fetchDetailCommon(spot.getContentId());
                 if (dto != null) {
                     boolean updated = false;
-                    // 이미지 URL 업데이트 (플레이스홀더인 경우 덮어쓰기)
+                    // 이미지 URL 업데이트 (API 응답이 있으면 무조건 업데이트)
                     if (dto.getFirstImage() != null && !dto.getFirstImage().isEmpty()) {
-                        String currentImageUrl = spot.getImageUrl();
-                        if (currentImageUrl == null || currentImageUrl.isEmpty()
-                                || currentImageUrl.contains("via.placeholder.com")) {
-                            spot.setImageUrl(dto.getFirstImage());
-                            updated = true;
-                        }
+                        spot.setImageUrl(dto.getFirstImage());
+                        updated = true;
                     }
-                    if (dto.getMapX() != null && !dto.getMapX().isEmpty()
-                            && (spot.getMapX() == null || spot.getMapX().isEmpty())) {
+                    // GPS 좌표 업데이트 (API 응답이 있으면 무조건 업데이트)
+                    if (dto.getMapX() != null && !dto.getMapX().isEmpty()) {
                         spot.setMapX(dto.getMapX());
                         updated = true;
                     }
-                    if (dto.getMapY() != null && !dto.getMapY().isEmpty()
-                            && (spot.getMapY() == null || spot.getMapY().isEmpty())) {
+                    if (dto.getMapY() != null && !dto.getMapY().isEmpty()) {
                         spot.setMapY(dto.getMapY());
                         updated = true;
                     }
-                    // 상세 주소 업데이트
-                    if (dto.getAddr1() != null && !dto.getAddr1().isEmpty()
-                            && (spot.getAddress() == null || spot.getAddress().isEmpty())) {
+                    // 상세 주소 업데이트 (API 응답이 있으면 무조건 업데이트)
+                    if (dto.getAddr1() != null && !dto.getAddr1().isEmpty()) {
                         spot.setAddress(dto.getAddr1());
                         updated = true;
                     }
-                    // 카테고리 기반 태그 생성
+                    // 카테고리 기반 태그 생성 (API 응답이 있으면 무조건 업데이트)
                     String generatedTags = generateTagsFromCategories(dto, spot);
-                    if (generatedTags != null && !generatedTags.isEmpty()
-                            && (spot.getThemeTag() == null || spot.getThemeTag().isEmpty())) {
+                    if (generatedTags != null && !generatedTags.isEmpty()) {
                         spot.setThemeTag(generatedTags);
                         updated = true;
                     }
-                    // 개요/설명 업데이트
-                    if (dto.getOverview() != null && !dto.getOverview().isEmpty()
-                            && (spot.getDescription() == null || spot.getDescription().isEmpty())) {
+                    // 개요/설명 업데이트 (API 응답이 있으면 무조건 업데이트)
+                    if (dto.getOverview() != null && !dto.getOverview().isEmpty()) {
                         spot.setDescription(dto.getOverview());
                         updated = true;
                     }
                     if (updated) {
                         spotRepository.save(spot);
                         updatedCount++;
-                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}, address={}, themeTag={}, description={}",
-                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getAddress(), spot.getThemeTag(), spot.getDescription());
+                        log.info("KorService2 데이터 강제 업데이트: spotId={}, name={}, contentId={}, imageUrl={}, mapX={}, mapY={}, address={}, themeTag={}, description={}",
+                                spot.getId(), spot.getName(), spot.getContentId(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getAddress(), spot.getThemeTag(), spot.getDescription());
+                    } else {
+                        log.warn("KorService2 응답 데이터 없음: spotId={}, name={}, contentId={}", spot.getId(), spot.getName(), spot.getContentId());
                     }
                 }
             } catch (Exception e) {

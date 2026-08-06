@@ -350,10 +350,9 @@ public class ExploreService {
 
 
 
-        // 조회수 증가
-
-        spot.setViewCount(spot.getViewCount() + 1);
-
+        // 조회수 증가 (null-safe 처리)
+        Long currentViewCount = spot.getViewCount() != null ? spot.getViewCount() : 0L;
+        spot.setViewCount(currentViewCount + 1);
         spotRepository.save(spot);
 
 
@@ -369,9 +368,9 @@ public class ExploreService {
 
                 .map(s -> NearbySpot.builder()
 
-                        .spotId(s.getId())
+                        .spotId(s.getId() != null ? s.getId() : 0L)
 
-                        .name(s.getName())
+                        .name(s.getName() != null ? s.getName() : "")
 
                         .imageUrl(getImageUrlWithFallback(s))
 
@@ -411,17 +410,22 @@ public class ExploreService {
 
         log.info("관광지 상세 정보 조회 완료: spotId={}", spotId);
 
+        // Null-safe fallback 처리
+        String address = spot.getAddress() != null ? spot.getAddress() : (spot.getRegion() != null ? spot.getRegion() : "");
+        String description = spot.getDescription() != null ? spot.getDescription() : "";
+        List<String> tags = parseTags(spot.getThemeTag());
+
         return SpotDetailResponse.builder()
 
-                .spotId(spot.getId())
+                .spotId(spot.getId() != null ? spot.getId() : 0L)
 
-                .name(spot.getName())
+                .name(spot.getName() != null ? spot.getName() : "")
 
-                .address(spot.getAddress() != null ? spot.getAddress() : spot.getRegion())
+                .address(address)
 
-                .tags(parseTags(spot.getThemeTag()))
+                .tags(tags != null ? tags : List.of())
 
-                .description(spot.getDescription())
+                .description(description)
 
                 .operatingHours("09:00 - 18:00 (계절별 변동)")
 
