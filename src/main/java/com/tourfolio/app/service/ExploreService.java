@@ -358,9 +358,10 @@ public class ExploreService {
 
 
 
-        // 주변 관광지 조회
-
-        List<Spot> nearbySpots = spotRepository.findNearbySpots(spot.getRegion(), spotId);
+        // 주변 관광지 조회 (region이 null인 경우 빈 리스트 반환)
+        List<Spot> nearbySpots = spot.getRegion() != null
+                ? spotRepository.findNearbySpots(spot.getRegion(), spotId)
+                : List.of();
 
         List<NearbySpot> nearby = nearbySpots.stream()
 
@@ -418,7 +419,7 @@ public class ExploreService {
 
                 .address(spot.getAddress() != null ? spot.getAddress() : spot.getRegion())
 
-                .tags(Arrays.asList(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme()))
+                .tags(parseTags(spot.getThemeTag()))
 
                 .description(spot.getDescription())
 
