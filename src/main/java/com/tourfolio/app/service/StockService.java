@@ -23,6 +23,8 @@ import com.tourfolio.app.repository.PortfolioRepository;
 import com.tourfolio.app.repository.PriceHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -341,8 +343,10 @@ public class StockService {
 
     /**
      * KorService2 API를 통해 관광지 이미지 및 GPS 좌표 동기화
+     * 서버 기동 시 자동 실행
      */
-    private void syncKorService2Data() {
+    @EventListener(ApplicationReadyEvent.class)
+    public void syncKorService2Data() {
         log.info("KorService2 데이터 동기화 시작");
         List<Spot> spots = spotRepository.findAll();
         int updatedCount = 0;
@@ -359,10 +363,14 @@ public class StockService {
                 KorService2Dto dto = korService2Client.fetchDetailCommon(spot.getContentId());
                 if (dto != null) {
                     boolean updated = false;
-                    if (dto.getFirstImage() != null && !dto.getFirstImage().isEmpty()
-                            && (spot.getImageUrl() == null || spot.getImageUrl().isEmpty())) {
-                        spot.setImageUrl(dto.getFirstImage());
-                        updated = true;
+                    // 이미지 URL 업데이트 (플레이스홀더인 경우 덮어쓰기)
+                    if (dto.getFirstImage() != null && !dto.getFirstImage().isEmpty()) {
+                        String currentImageUrl = spot.getImageUrl();
+                        if (currentImageUrl == null || currentImageUrl.isEmpty()
+                                || currentImageUrl.contains("via.placeholder.com")) {
+                            spot.setImageUrl(dto.getFirstImage());
+                            updated = true;
+                        }
                     }
                     if (dto.getMapX() != null && !dto.getMapX().isEmpty()
                             && (spot.getMapX() == null || spot.getMapX().isEmpty())) {
@@ -374,11 +382,18 @@ public class StockService {
                         spot.setMapY(dto.getMapY());
                         updated = true;
                     }
+                    // 카테고리 기반 태그 생성
+                    String generatedTags = generateTagsFromCategories(dto, spot);
+                    if (generatedTags != null && !generatedTags.isEmpty()
+                            && (spot.getThemeTag() == null || spot.getThemeTag().isEmpty())) {
+                        spot.setThemeTag(generatedTags);
+                        updated = true;
+                    }
                     if (updated) {
                         spotRepository.save(spot);
                         updatedCount++;
-                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}",
-                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY());
+                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}, themeTag={}",
+                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getThemeTag());
                     }
                 }
             } catch (Exception e) {
@@ -387,6 +402,34 @@ public class StockService {
             }
         }
         log.info("KorService2 데이터 동기화 완료: {}건 업데이트", updatedCount);
+    }
+
+    private String generateTagsFromCategories(KorService2Dto dto, Spot spot) {
+        java.util.List<String> tags = new java.util.ArrayList<>();
+
+        // 카테고리에서 태그 추출
+        if (dto.getCat1() != null && !dto.getCat1().isEmpty()) {
+            tags.add(dto.getCat1().trim());
+        }
+        if (dto.getCat2() != null && !dto.getCat2().isEmpty()) {
+            tags.add(dto.getCat2().trim());
+        }
+        if (dto.getCat3() != null && !dto.getCat3().isEmpty()) {
+            tags.add(dto.getCat3().trim());
+        }
+
+        // 지역명 추가
+        if (spot.getRegion() != null && !spot.getRegion().isEmpty()) {
+            tags.add(spot.getRegion().trim());
+        }
+
+        // 테마 추가
+        if (spot.getTheme() != null && !spot.getTheme().isEmpty()) {
+            tags.add(spot.getTheme().trim());
+        }
+
+        // 중복 제거 및 쉼표로 구분된 문자열 반환
+        return tags.stream().distinct().collect(java.util.stream.Collectors.joining(","));
     }
 
     public List<StockResponse> getAllStocks() {

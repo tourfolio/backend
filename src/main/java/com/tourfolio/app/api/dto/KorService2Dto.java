@@ -32,4 +32,13 @@ public class KorService2Dto {
 
     @JsonProperty("addr2")
     private String addr2;
+
+    @JsonProperty("cat1")
+    private String cat1;
+
+    @JsonProperty("cat2")
+    private String cat2;
+
+    @JsonProperty("cat3")
+    private String cat3;
 }

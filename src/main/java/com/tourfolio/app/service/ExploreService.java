@@ -55,10 +55,13 @@ public class ExploreService {
             return List.of();
         }
         // 쉼표로 구분된 태그를 리스트로 변환
-        return Arrays.stream(themeTag.split(","))
+        List<String> tags = Arrays.stream(themeTag.split(","))
                 .map(String::trim)
                 .filter(tag -> !tag.isEmpty())
                 .toList();
+
+        // 태그가 여전히 비어있으면 빈 리스트 반환
+        return tags.isEmpty() ? List.of() : tags;
     }
 
 
