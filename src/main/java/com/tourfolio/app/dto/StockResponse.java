@@ -23,4 +23,6 @@ public class StockResponse {
     private BigDecimal changeRate;
     private LocalDateTime lastUpdated;
     private String imageUrl;
+    private String mapX;
+    private String mapY;
 }

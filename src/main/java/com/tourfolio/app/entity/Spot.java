@@ -144,6 +144,18 @@ public class Spot {
 
     @Column(length = 50)
 
+    private String mapX;
+
+
+
+    @Column(length = 50)
+
+    private String mapY;
+
+
+
+    @Column(length = 50)
+
     private String areaName;
 
 

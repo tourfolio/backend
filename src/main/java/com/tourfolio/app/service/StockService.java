@@ -1,6 +1,8 @@
 // src/main/java/com/tourfolio/app/service/StockService.java
 package com.tourfolio.app.service;
 
+import com.tourfolio.app.api.client.KorService2Client;
+import com.tourfolio.app.api.dto.KorService2Dto;
 import com.tourfolio.app.dto.StockResponse;
 import com.tourfolio.app.dto.TradeRequest;
 import com.tourfolio.app.dto.MemberAssetResponse;
@@ -43,6 +45,7 @@ public class StockService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final TourIndicatorService tourIndicatorService;
     private final PriceCalculationService priceCalculationService;
+    private final KorService2Client korService2Client;
 
     @Transactional(rollbackFor = Exception.class)
     public Transaction executeTrade(TradeRequest request) {
@@ -206,6 +209,9 @@ public class StockService {
         // 캐시 초기화
         tourIndicatorService.clearCache();
 
+        // KorService2 데이터 동기화 (이미지, GPS 좌표)
+        syncKorService2Data();
+
         // 전체 종목 조회
         List<Spot> spots = spotRepository.findAll();
         log.info("전체 종목 수: {}", spots.size());
@@ -329,6 +335,56 @@ public class StockService {
         return currentPrice.add(currentPrice.multiply(finalChangeRate)).setScale(0, RoundingMode.HALF_UP);
     }
 
+    /**
+     * KorService2 API를 통해 관광지 이미지 및 GPS 좌표 동기화
+     */
+    private void syncKorService2Data() {
+        log.info("KorService2 데이터 동기화 시작");
+        List<Spot> spots = spotRepository.findAll();
+        int updatedCount = 0;
+
+        for (Spot spot : spots) {
+            try {
+                // 이미지와 좌표가 모두 있는 경우 건너뜀
+                if (spot.getImageUrl() != null && !spot.getImageUrl().isEmpty()
+                        && spot.getMapX() != null && !spot.getMapX().isEmpty()
+                        && spot.getMapY() != null && !spot.getMapY().isEmpty()) {
+                    continue;
+                }
+
+                KorService2Dto dto = korService2Client.fetchDetailCommon(spot.getContentId());
+                if (dto != null) {
+                    boolean updated = false;
+                    if (dto.getFirstImage() != null && !dto.getFirstImage().isEmpty()
+                            && (spot.getImageUrl() == null || spot.getImageUrl().isEmpty())) {
+                        spot.setImageUrl(dto.getFirstImage());
+                        updated = true;
+                    }
+                    if (dto.getMapX() != null && !dto.getMapX().isEmpty()
+                            && (spot.getMapX() == null || spot.getMapX().isEmpty())) {
+                        spot.setMapX(dto.getMapX());
+                        updated = true;
+                    }
+                    if (dto.getMapY() != null && !dto.getMapY().isEmpty()
+                            && (spot.getMapY() == null || spot.getMapY().isEmpty())) {
+                        spot.setMapY(dto.getMapY());
+                        updated = true;
+                    }
+                    if (updated) {
+                        spotRepository.save(spot);
+                        updatedCount++;
+                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}",
+                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("KorService2 동기화 실패: spotId={}, name={}, error={}",
+                        spot.getId(), spot.getName(), e.getMessage());
+            }
+        }
+        log.info("KorService2 데이터 동기화 완료: {}건 업데이트", updatedCount);
+    }
+
     public List<StockResponse> getAllStocks() {
         return spotRepository.findAllByOrderByTierAscNameAsc().stream()
                 .map(this::mapToStockResponse)
@@ -353,6 +409,8 @@ public class StockService {
                 .changeRate(changeRate)
                 .lastUpdated(spot.getLastUpdated())
                 .imageUrl(spot.getImageUrl())
+                .mapX(spot.getMapX())
+                .mapY(spot.getMapY())
                 .build();
     }
 
