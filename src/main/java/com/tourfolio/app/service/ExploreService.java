@@ -42,6 +42,25 @@ public class ExploreService {
 
     private final SpotRepository spotRepository;
 
+    private static final String DEFAULT_IMAGE_URL = "https://via.placeholder.com/800x600?text=No+Image";
+
+
+
+    private String getImageUrlWithFallback(Spot spot) {
+        return spot.getImageUrl() != null && !spot.getImageUrl().isEmpty() ? spot.getImageUrl() : DEFAULT_IMAGE_URL;
+    }
+
+    private List<String> parseTags(String themeTag) {
+        if (themeTag == null || themeTag.trim().isEmpty()) {
+            return List.of();
+        }
+        // 쉼표로 구분된 태그를 리스트로 변환
+        return Arrays.stream(themeTag.split(","))
+                .map(String::trim)
+                .filter(tag -> !tag.isEmpty())
+                .toList();
+    }
+
 
 
     public List<ExploreResponse> getAllExploreCards() {
@@ -110,7 +129,7 @@ public class ExploreService {
 
                 .tier(spot.getTier())
 
-                .imageUrl(spot.getImageUrl())
+                .imageUrl(getImageUrlWithFallback(spot))
 
                 .description(spot.getDescription())
 
@@ -118,58 +137,33 @@ public class ExploreService {
 
     }
 
-
-
     // 신규: 풀스크린 메인 카드 조회 (Editor's Pick)
-
     public List<MainCardResponse> getMainCards() {
-
         log.info("풀스크린 메인 카드 조회 시작");
-
         List<Spot> spots = spotRepository.findMainCards();
-
         List<MainCardResponse> responses = spots.stream()
-
                 .limit(6) // Editor's Pick 최대 6개
-
                 .map((spot) -> {
-
                     int index = spots.indexOf(spot) + 1;
-
                     return MainCardResponse.builder()
-
                             .spotId(spot.getId())
-
                             .name(spot.getName())
-
                             .subTitle(generateSubTitle(spot))
-
                             .description(spot.getDescription())
-
                             .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
-
-                            .imageUrl(spot.getImageUrl())
-
+                            .imageUrl(getImageUrlWithFallback(spot))
+                            .theme(spot.getTheme() != null ? spot.getTheme() : "")
+                            .tags(parseTags(spot.getThemeTag()))
                             .totalCount(Math.min(spots.size(), 6))
-
                             .currentIndex(index)
-
                             .build();
-
                 })
-
                 .collect(Collectors.toList());
-
         log.info("풀스크린 메인 카드 조회 완료: {}건", responses.size());
-
         return responses;
-
     }
 
-
-
     // 신규: 컨텐츠 허브 조회
-
     public HubResponse getHubData() {
 
         log.info("컨텐츠 허브 조회 시작");
@@ -242,7 +236,7 @@ public class ExploreService {
 
                             .popularityRank(index)
 
-                            .imageUrl(spot.getImageUrl())
+                            .imageUrl(getImageUrlWithFallback(spot))
 
                             .build();
 
@@ -298,7 +292,7 @@ public class ExploreService {
 
                         .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
 
-                        .imageUrl(spot.getImageUrl())
+                        .imageUrl(getImageUrlWithFallback(spot))
 
                         .tags(Arrays.asList(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme()))
 
@@ -366,7 +360,7 @@ public class ExploreService {
 
                         .name(s.getName())
 
-                        .imageUrl(s.getImageUrl())
+                        .imageUrl(getImageUrlWithFallback(s))
 
                         .build())
 
@@ -464,7 +458,7 @@ public class ExploreService {
 
                         .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
 
-                        .imageUrl(spot.getImageUrl())
+                        .imageUrl(getImageUrlWithFallback(spot))
 
                         .tags(Arrays.asList(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme()))
 
@@ -525,6 +519,24 @@ public class ExploreService {
     }
 
 
+
+    // 신규: 지금 뜨는 여행지 조회 (조회수 기준)
+    public List<ExploreResponse> getTrendingSpots() {
+        log.info("지금 뜨는 여행지 조회 시작 (조회수 기준)");
+        try {
+            List<Spot> trendingSpots = spotRepository.findTrendingSpotsByViewCount();
+            List<ExploreResponse> responses = trendingSpots.stream()
+                    .limit(10)
+                    .map(this::mapToExploreResponse)
+                    .collect(Collectors.toList());
+            log.info("지금 뜨는 여행지 조회 완료: {}건", responses.size());
+            return responses;
+        } catch (Exception e) {
+            log.error("지금 뜨는 여행지 조회 실패: error={}", e.getMessage());
+            // 예외 발생 시 빈 목록 반환하여 전체 탐색 조회가 다운되지 않도록 안전장치
+            return List.of();
+        }
+    }
 
     // 헬퍼 메서드: 테마 ID를 테마 이름으로 변환
 

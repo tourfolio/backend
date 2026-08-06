@@ -143,4 +143,19 @@ public class ExploreController {
         SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, regions, themes);
         return ResponseEntity.ok(searchResult);
     }
+
+    @GetMapping("/trending")
+    @Operation(
+            summary = "지금 뜨는 여행지 조회 (조회수 기준)",
+            description = "관광지 상세 조회수(viewCount)가 높은 순으로 상위 10개 인기 여행지를 조회합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "지금 뜨는 여행지 조회 성공"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    public ResponseEntity<List<ExploreResponse>> getTrendingSpots() {
+        log.info("GET /api/v1/explore/trending - 지금 뜨는 여행지 조회 요청");
+        List<ExploreResponse> trendingSpots = exploreService.getTrendingSpots();
+        return ResponseEntity.ok(trendingSpots);
+    }
 }

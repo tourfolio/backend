@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -30,6 +32,12 @@ public class MainCardResponse {
 
     @Schema(description = "풀스크린 배경 이미지 URL", example = "https://example.com/images/gyeongbokgung.jpg")
     private String imageUrl;
+
+    @Schema(description = "테마", example = "역사")
+    private String theme;
+
+    @Schema(description = "태그 목록", example = "[\"역사\", \"궁궐\", \"서울\"]")
+    private List<String> tags;
 
     @Schema(description = "전체 카드 개수", example = "6")
     private Integer totalCount;
