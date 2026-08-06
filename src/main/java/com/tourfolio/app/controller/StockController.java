@@ -35,7 +35,7 @@ public class StockController {
     @GetMapping("/stocks")
     @Operation(
             summary = "주식 목록 조회 (통합)",
-            description = "지역, 키워드, 태그, 정렬 기준으로 관광 주식을 검색합니다. 모든 파라미터는 선택적이며, 기본값으로 전체 목록을 등락률 내림차순으로 반환합니다."
+            description = "지역, 키워드, 태그(다중 선택), 정렬 기준으로 관광 주식을 검색합니다. 모든 파라미터는 선택적이며, 기본값으로 전체 목록을 등락률 내림차순으로 반환합니다."
     )
     public ResponseEntity<List<StockResponse>> getAllStocks(
             @Parameter(
@@ -53,11 +53,11 @@ public class StockController {
             @RequestParam(required = false) String keyword,
 
             @Parameter(
-                    description = "태그 필터 (예: '자연', '문화', '역사')",
-                    example = "자연",
+                    description = "태그 필터 (다중 선택, 예: 자연,문화,역사)",
+                    example = "자연,문화",
                     required = false
             )
-            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) List<String> tags,
 
             @Parameter(
                     description = "정렬 기준 (price, changeRate, name, tier)",
@@ -72,8 +72,8 @@ public class StockController {
                     required = false
             )
             @RequestParam(required = false, defaultValue = "DESC") String sortOrder) {
-        log.info("GET /api/stocks - 주식 목록 통합 조회: region={}, keyword={}, tag={}, sortBy={}, sortOrder={}", region, keyword, tag, sortBy, sortOrder);
-        return ResponseEntity.ok(stockService.searchStocksUnified(region, keyword, tag, sortBy, sortOrder));
+        log.info("GET /api/stocks - 주식 목록 통합 조회: region={}, keyword={}, tags={}, sortBy={}, sortOrder={}", region, keyword, tags, sortBy, sortOrder);
+        return ResponseEntity.ok(stockService.searchStocksUnified(region, keyword, tags, sortBy, sortOrder));
     }
 
     @GetMapping("/stocks/top-gainers")

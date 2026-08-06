@@ -108,7 +108,7 @@ public class ExploreController {
     @GetMapping("/search")
     @Operation(
             summary = "탐색 화면 복합 필터링 검색",
-            description = "키워드, 지역(다중 선택), 테마(다중 선택), 태그(단일 선택)를 조합하여 관광지를 검색합니다. 키워드는 관광지명, 지역명, 태그명 모두 검색합니다. 모든 파라미터는 선택적이며, null이거나 비어있는 경우 해당 조건은 무시됩니다. 검색된 관광지 목록과 총 개수를 반환합니다."
+            description = "키워드, 지역(다중 선택), 테마(다중 선택), 태그(다중 선택)를 조합하여 관광지를 검색합니다. 키워드는 관광지명, 지역명, 태그명 모두 검색합니다. 모든 파라미터는 선택적이며, null이거나 비어있는 경우 해당 조건은 무시됩니다. 검색된 관광지 목록과 총 개수를 반환합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "필터링 검색 성공"),
@@ -138,16 +138,16 @@ public class ExploreController {
             @RequestParam(required = false) List<String> themes,
 
             @Parameter(
-                    description = "태그 필터 (단일 선택, 예: 궁궐)",
-                    example = "궁궐",
+                    description = "태그 필터 (다중 선택, 예: 궁궐,야경)",
+                    example = "궁궐,야경",
                     required = false
             )
-            @RequestParam(required = false) String tag) {
+            @RequestParam(required = false) List<String> tags) {
 
-        log.info("GET /api/v1/explore/search - 탐색 화면 복합 필터링 검색 요청: keyword={}, regions={}, themes={}, tag={}",
-                keyword, regions, themes, tag);
+        log.info("GET /api/v1/explore/search - 탐색 화면 복합 필터링 검색 요청: keyword={}, regions={}, themes={}, tags={}",
+                keyword, regions, themes, tags);
 
-        SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, regions, themes, tag);
+        SearchResponse searchResult = exploreService.searchSpotsWithTotalCount(keyword, regions, themes, tags);
         return ResponseEntity.ok(searchResult);
     }
 

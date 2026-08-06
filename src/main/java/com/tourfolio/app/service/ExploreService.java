@@ -435,9 +435,9 @@ public class ExploreService {
 
     // 신규: 복합 필터링 검색 (totalCount 포함)
 
-    public SearchResponse searchSpotsWithTotalCount(String keyword, List<String> regions, List<String> themes, String tag) {
+    public SearchResponse searchSpotsWithTotalCount(String keyword, List<String> regions, List<String> themes, List<String> tags) {
 
-        log.info("복합 필터링 검색 시작: keyword={}, regions={}, themes={}, tag={}", keyword, regions, themes, tag);
+        log.info("복합 필터링 검색 시작: keyword={}, regions={}, themes={}, tags={}", keyword, regions, themes, tags);
 
 
 
@@ -447,16 +447,17 @@ public class ExploreService {
 
         List<String> normalizedThemes = (themes == null || themes.isEmpty()) ? null : themes;
 
-        String normalizedTag = (tag == null || tag.trim().isEmpty()) ? null : tag.trim();
+        List<String> normalizedTags = (tags == null || tags.isEmpty()) ? null : tags;
 
 
 
         List<Spot> spots = spotRepository.searchSpotsWithFilters(normalizedKeyword, normalizedRegions, normalizedThemes);
 
-        // 태그 필터 추가 적용
-        if (normalizedTag != null) {
+        // 다중 태그 필터 추가 적용 (OR 조건: 태그 중 하나라도 매칭되면 포함)
+        if (normalizedTags != null && !normalizedTags.isEmpty()) {
             spots = spots.stream()
-                    .filter(spot -> spot.getThemeTag() != null && spot.getThemeTag().toLowerCase().contains(normalizedTag.toLowerCase()))
+                    .filter(spot -> spot.getThemeTag() != null && normalizedTags.stream()
+                            .anyMatch(tag -> spot.getThemeTag().toLowerCase().contains(tag.toLowerCase())))
                     .collect(Collectors.toList());
         }
 

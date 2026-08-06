@@ -541,11 +541,11 @@ public class StockService {
                 .collect(Collectors.toList());
     }
 
-    public List<StockResponse> searchStocksUnified(String region, String keyword, String tag, String sortBy, String sortOrder) {
+    public List<StockResponse> searchStocksUnified(String region, String keyword, List<String> tags, String sortBy, String sortOrder) {
         List<Spot> spots;
         String normalizedRegion = ("ALL".equals(region) || "전체".equals(region) || region == null || region.trim().isEmpty()) ? null : region;
         String normalizedKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
-        String normalizedTag = (tag == null || tag.trim().isEmpty()) ? null : tag.trim();
+        List<String> normalizedTags = (tags == null || tags.isEmpty()) ? null : tags;
         String normalizedSortBy = (sortBy == null || sortBy.trim().isEmpty()) ? "changeRate" : sortBy;
         String normalizedSortOrder = (sortOrder == null || sortOrder.trim().isEmpty()) ? "DESC" : sortOrder.toUpperCase();
 
@@ -554,7 +554,8 @@ public class StockService {
             // 키워드 검색: 이름, 지역명, 태그명 검색
             spots = spotRepository.findAll().stream()
                     .filter(spot -> normalizedRegion == null || normalizedRegion.equals(spot.getRegion()) || normalizedRegion.equals(spot.getAreaCode()))
-                    .filter(spot -> normalizedTag == null || (spot.getThemeTag() != null && spot.getThemeTag().contains(normalizedTag)))
+                    .filter(spot -> normalizedTags == null || normalizedTags.isEmpty() || (spot.getThemeTag() != null && normalizedTags.stream()
+                            .anyMatch(tag -> spot.getThemeTag().toLowerCase().contains(tag.toLowerCase()))))
                     .filter(spot -> spot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
                                    (spot.getRegion() != null && spot.getRegion().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
                                    (spot.getAreaName() != null && spot.getAreaName().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
@@ -567,10 +568,11 @@ public class StockService {
             } else {
                 spots = spotRepository.findAll();
             }
-            // 태그 필터 적용
-            if (normalizedTag != null) {
+            // 다중 태그 필터 적용 (OR 조건)
+            if (normalizedTags != null && !normalizedTags.isEmpty()) {
                 spots = spots.stream()
-                        .filter(spot -> spot.getThemeTag() != null && spot.getThemeTag().contains(normalizedTag))
+                        .filter(spot -> spot.getThemeTag() != null && normalizedTags.stream()
+                                .anyMatch(tag -> spot.getThemeTag().toLowerCase().contains(tag.toLowerCase())))
                         .collect(Collectors.toList());
             }
         }
