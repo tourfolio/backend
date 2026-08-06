@@ -30,6 +30,9 @@ public class MainCardResponse {
     @Schema(description = "위치/지역명", example = "서울 종로구")
     private String location;
 
+    @Schema(description = "상세 주소", example = "서울특별시 종로구 사직로 161")
+    private String address;
+
     @Schema(description = "풀스크린 배경 이미지 URL", example = "https://example.com/images/gyeongbokgung.jpg")
     private String imageUrl;
 

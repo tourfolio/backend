@@ -46,6 +46,9 @@ public class ExploreResponse {
     @Schema(description = "GPS 위도 (mapY)", example = "35.123456")
     private String mapY;
 
+    @Schema(description = "상세 주소", example = "서울특별시 종로구 사직로 161")
+    private String address;
+
     @Schema(description = "태그 목록", example = "[\"레저\", \"해변\", \"부산\"]")
     private List<String> tags;
 }

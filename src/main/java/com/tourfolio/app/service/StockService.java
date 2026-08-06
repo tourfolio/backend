@@ -382,6 +382,12 @@ public class StockService {
                         spot.setMapY(dto.getMapY());
                         updated = true;
                     }
+                    // 상세 주소 업데이트
+                    if (dto.getAddr1() != null && !dto.getAddr1().isEmpty()
+                            && (spot.getAddress() == null || spot.getAddress().isEmpty())) {
+                        spot.setAddress(dto.getAddr1());
+                        updated = true;
+                    }
                     // 카테고리 기반 태그 생성
                     String generatedTags = generateTagsFromCategories(dto, spot);
                     if (generatedTags != null && !generatedTags.isEmpty()
@@ -398,8 +404,8 @@ public class StockService {
                     if (updated) {
                         spotRepository.save(spot);
                         updatedCount++;
-                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}, themeTag={}, description={}",
-                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getThemeTag(), spot.getDescription());
+                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}, address={}, themeTag={}, description={}",
+                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getAddress(), spot.getThemeTag(), spot.getDescription());
                     }
                 }
             } catch (Exception e) {
