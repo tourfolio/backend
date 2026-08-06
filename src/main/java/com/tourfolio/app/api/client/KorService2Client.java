@@ -46,7 +46,7 @@ public class KorService2Client {
                     .queryParam("catcodeYN", "Y")
                     .queryParam("addrinfoYN", "Y")
                     .queryParam("mapinfoYN", "Y")
-                    .queryParam("overviewYN", "N")
+                    .queryParam("overviewYN", "Y")
                     .queryParam("_type", "json")
                     .build(true)
                     .toUriString();

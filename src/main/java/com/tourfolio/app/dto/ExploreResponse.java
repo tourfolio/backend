@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -37,4 +39,13 @@ public class ExploreResponse {
 
     @Schema(description = "관광지 요약 설명", example = "해운대의 랜드마크 쇼핑몰과 호텔 복합 시설")
     private String description;
+
+    @Schema(description = "GPS 경도 (mapX)", example = "128.123456")
+    private String mapX;
+
+    @Schema(description = "GPS 위도 (mapY)", example = "35.123456")
+    private String mapY;
+
+    @Schema(description = "태그 목록", example = "[\"레저\", \"해변\", \"부산\"]")
+    private List<String> tags;
 }

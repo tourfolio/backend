@@ -41,4 +41,7 @@ public class KorService2Dto {
 
     @JsonProperty("cat3")
     private String cat3;
+
+    @JsonProperty("overview")
+    private String overview;
 }

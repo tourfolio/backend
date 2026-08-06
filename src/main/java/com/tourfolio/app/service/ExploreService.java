@@ -136,6 +136,12 @@ public class ExploreService {
 
                 .description(spot.getDescription())
 
+                .mapX(spot.getMapX())
+
+                .mapY(spot.getMapY())
+
+                .tags(parseTags(spot.getThemeTag()))
+
                 .build();
 
     }

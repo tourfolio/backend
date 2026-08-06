@@ -389,11 +389,17 @@ public class StockService {
                         spot.setThemeTag(generatedTags);
                         updated = true;
                     }
+                    // 개요/설명 업데이트
+                    if (dto.getOverview() != null && !dto.getOverview().isEmpty()
+                            && (spot.getDescription() == null || spot.getDescription().isEmpty())) {
+                        spot.setDescription(dto.getOverview());
+                        updated = true;
+                    }
                     if (updated) {
                         spotRepository.save(spot);
                         updatedCount++;
-                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}, themeTag={}",
-                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getThemeTag());
+                        log.debug("KorService2 데이터 업데이트: spotId={}, name={}, imageUrl={}, mapX={}, mapY={}, themeTag={}, description={}",
+                                spot.getId(), spot.getName(), spot.getImageUrl(), spot.getMapX(), spot.getMapY(), spot.getThemeTag(), spot.getDescription());
                     }
                 }
             } catch (Exception e) {
