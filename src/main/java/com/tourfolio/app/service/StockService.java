@@ -344,9 +344,12 @@ public class StockService {
     /**
      * KorService2 API를 통해 관광지 이미지 및 GPS 좌표 동기화
      * 서버 기동 시 자동 실행
+     * NOTE: 외부 API 불안정성으로 인해 비활성화 처리됨 (data.sql 사용)
      */
-    @EventListener(ApplicationReadyEvent.class)
+    // @EventListener(ApplicationReadyEvent.class)
     public void syncKorService2Data() {
+        log.info("KorService2 데이터 동기화 비활성화됨 (data.sql 사용)");
+        /*
         log.info("KorService2 데이터 동기화 시작");
         List<Spot> spots = spotRepository.findAll();
         int updatedCount = 0;
@@ -408,6 +411,7 @@ public class StockService {
             }
         }
         log.info("KorService2 데이터 동기화 완료: {}건 업데이트", updatedCount);
+        */
     }
 
     private String generateTagsFromCategories(KorService2Dto dto, Spot spot) {
