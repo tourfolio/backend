@@ -98,8 +98,8 @@ public class CollectionController {
 
             @Valid @RequestBody AcquireCardRequest request) {
 
-        log.info("POST /api/v1/collection/cards/{}/acquire - GPS 기반 카드 획득 요청: userId={}, lat={}, lon={}", 
-                cardId, userId, request.getLatitude(), request.getLongitude());
+        log.info("POST /api/v1/collection/cards/{}/acquire - GPS 기반 카드 획득 요청: userId={}, distanceInMeters={}",
+                cardId, userId, request.getDistanceInMeters());
 
         collectionService.acquireCard(userId, cardId, request);
         return ResponseEntity.ok().build();

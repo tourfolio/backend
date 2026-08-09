@@ -140,7 +140,7 @@ public class ExploreService {
 
                 .mapY(spot.getMapY())
 
-                .address(spot.getAddress())
+                .address(spot.getAddress() != null ? spot.getAddress() : "")
 
                 .tags(parseTags(spot.getThemeTag()))
 
@@ -162,7 +162,7 @@ public class ExploreService {
                             .subTitle(generateSubTitle(spot))
                             .description(spot.getDescription())
                             .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
-                            .address(spot.getAddress())
+                            .address(spot.getAddress() != null ? spot.getAddress() : "")
                             .imageUrl(getImageUrlWithFallback(spot))
                             .theme(spot.getTheme() != null ? spot.getTheme() : "")
                             .tags(parseTags(spot.getThemeTag()))
@@ -484,6 +484,8 @@ public class ExploreService {
                         .name(spot.getName())
 
                         .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
+
+                        .address(spot.getAddress() != null ? spot.getAddress() : "")
 
                         .imageUrl(getImageUrlWithFallback(spot))
 

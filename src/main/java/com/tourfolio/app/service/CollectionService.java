@@ -28,7 +28,7 @@ public class CollectionService {
     private final SpotRepository spotRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-    private static final double GPS_THRESHOLD = 0.005; // 약 500m 반경
+    private static final double DISTANCE_THRESHOLD = 200.0; // 200m 반경
 
     // 수집 메인 화면 조회 (복합 필터링)
     public CollectionResponse getCollection(Long userId, String region, String theme, Card.CardRarity rarity) {
@@ -104,8 +104,8 @@ public class CollectionService {
     // GPS 기반 카드 획득 (방문 인증)
     @Transactional
     public void acquireCard(Long userId, Long cardId, AcquireCardRequest request) {
-        log.info("GPS 기반 카드 획득 시작: userId={}, cardId={}, lat={}, lon={}", 
-                userId, cardId, request.getLatitude(), request.getLongitude());
+        log.info("GPS 기반 카드 획득 시작: userId={}, cardId={}, distanceInMeters={}",
+                userId, cardId, request.getDistanceInMeters());
 
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CustomException("CARD_NOT_FOUND", "카드를 찾을 수 없습니다."));
@@ -115,14 +115,15 @@ public class CollectionService {
             throw new CustomException("ALREADY_OWNED", "이미 보유한 카드입니다.");
         }
 
-        // GPS 거리 확인
-        double distance = calculateDistance(
-                request.getLatitude(), request.getLongitude(),
-                card.getLatitude(), card.getLongitude()
-        );
+        // 거리 검증 (프론트엔드에서 계산한 거리값 사용)
+        Double distanceInMeters = request.getDistanceInMeters();
+        if (distanceInMeters == null) {
+            throw new CustomException("INVALID_DISTANCE", "거리값이 제공되지 않았습니다.");
+        }
 
-        if (distance > GPS_THRESHOLD) {
-            throw new CustomException("LOCATION_TOO_FAR", "관광지에서 너무 멀리 떨어져 있습니다.");
+        if (distanceInMeters > DISTANCE_THRESHOLD) {
+            throw new CustomException("LOCATION_TOO_FAR",
+                    String.format("아직 관광지와의 거리가 셉니다. 200m 이내로 접근해 주세요. (현재 거리: %.1fm)", distanceInMeters));
         }
 
         // 카드 획득
@@ -134,7 +135,7 @@ public class CollectionService {
                 .build();
 
         userCardRepository.save(userCard);
-        log.info("GPS 기반 카드 획득 완료: userId={}, cardId={}", userId, cardId);
+        log.info("GPS 기반 카드 획득 완료: userId={}, cardId={}, distanceInMeters={}", userId, cardId, distanceInMeters);
     }
 
     // 하버사인 공식으로 두 GPS 좌표 간의 거리 계산 (단위: 도)

@@ -18,4 +18,7 @@ public class AcquireCardRequest {
 
     @Schema(description = "현재 경도", example = "129.1604", required = true)
     private Double longitude;
+
+    @Schema(description = "관광지와의 거리 (미터 단위)", example = "150.5", required = true)
+    private Double distanceInMeters;
 }
