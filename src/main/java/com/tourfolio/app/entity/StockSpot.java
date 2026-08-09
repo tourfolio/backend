@@ -58,15 +58,6 @@ public class StockSpot {
     @Column(name = "tourism_data_weight", nullable = false, precision = 19, scale = 2)
     private BigDecimal tourismDataWeight;
 
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
-
-    @Column(name = "map_x", length = 50)
-    private String mapX;
-
-    @Column(name = "map_y", length = 50)
-    private String mapY;
-
     @Column(name = "last_updated", nullable = false)
     private LocalDateTime lastUpdated;
 

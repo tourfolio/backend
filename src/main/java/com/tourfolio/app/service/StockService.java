@@ -353,9 +353,6 @@ public class StockService {
         return currentPrice.add(currentPrice.multiply(finalChangeRate)).setScale(0, RoundingMode.HALF_UP);
     }
 
-    private String getImageUrlWithFallback(StockSpot stockSpot) {
-        return stockSpot.getImageUrl() != null && !stockSpot.getImageUrl().isEmpty() ? stockSpot.getImageUrl() : "https://via.placeholder.com/800x600?text=No+Image";
-    }
 
     /**
      * KorService2 API를 통해 관광지 이미지 및 GPS 좌표 동기화
@@ -497,9 +494,6 @@ public class StockService {
                 .prevPrice(prevPrice)
                 .changeRate(changeRate)
                 .lastUpdated(lastUpdated)
-                .imageUrl(getImageUrlWithFallback(stockSpot))
-                .mapX(stockSpot.getMapX())
-                .mapY(stockSpot.getMapY())
                 .build();
     }
 
