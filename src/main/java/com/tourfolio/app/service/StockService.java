@@ -563,7 +563,10 @@ public class StockService {
         if (normalizedKeyword != null) {
             // 키워드 검색: 이름, 지역명, 태그명 검색
             spots = spotRepository.findAll().stream()
-                    .filter(spot -> normalizedRegion == null || normalizedRegion.equals(spot.getRegion()) || normalizedRegion.equals(spot.getAreaCode()))
+                    .filter(spot -> normalizedRegion == null ||
+                            normalizedRegion.equals(spot.getRegion()) ||
+                            normalizedRegion.equals(spot.getAreaCode()) ||
+                            normalizedRegion.equals(spot.getAreaName()))
                     .filter(spot -> normalizedTags == null || normalizedTags.isEmpty() || (spot.getThemeTag() != null && normalizedTags.stream()
                             .anyMatch(tag -> spot.getThemeTag().toLowerCase().contains(tag.toLowerCase()))))
                     .filter(spot -> spot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
@@ -572,9 +575,13 @@ public class StockService {
                                    (spot.getThemeTag() != null && spot.getThemeTag().toLowerCase().contains(normalizedKeyword.toLowerCase())))
                     .collect(Collectors.toList());
         } else {
-            // 지역 필터만 적용
+            // 지역 필터만 적용 (한글 지역명, 지역 코드 모두 지원)
             if (normalizedRegion != null) {
-                spots = spotRepository.findByRegion(normalizedRegion);
+                spots = spotRepository.findAll().stream()
+                        .filter(spot -> normalizedRegion.equals(spot.getRegion()) ||
+                                       normalizedRegion.equals(spot.getAreaCode()) ||
+                                       normalizedRegion.equals(spot.getAreaName()))
+                        .collect(Collectors.toList());
             } else {
                 spots = spotRepository.findAll();
             }
@@ -685,7 +692,7 @@ public class StockService {
     }
 
     @Transactional(readOnly = true)
-    public PortfolioSummaryResponse getPortfolioSummary(Long userId) {
+    public PortfolioSummaryResponse getPortfolioSummary(Long userId, String period) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException("USER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + userId));
 
@@ -712,8 +719,8 @@ public class StockService {
             profitRate = totalProfitLoss.divide(totalPurchase, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
         }
 
-        // 자산 추이 데이터 생성 (최근 7일)
-        List<PortfolioSummaryResponse.AssetHistoryItem> assetHistory = generateAssetHistory(userId, totalAsset);
+        // 자산 추이 데이터 생성 (기간별 주가 기반 실제 계산)
+        List<PortfolioSummaryResponse.AssetHistoryItem> assetHistory = generateAssetHistory(userId, period, portfolios, user.getBalance());
 
         return PortfolioSummaryResponse.builder()
                 .totalAsset(totalAsset)
@@ -726,21 +733,57 @@ public class StockService {
                 .build();
     }
 
-    private List<PortfolioSummaryResponse.AssetHistoryItem> generateAssetHistory(Long userId, BigDecimal currentTotalAsset) {
+    private List<PortfolioSummaryResponse.AssetHistoryItem> generateAssetHistory(Long userId, String period, List<Portfolio> portfolios, BigDecimal cashBalance) {
         List<PortfolioSummaryResponse.AssetHistoryItem> history = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
-        // 최근 7일 데이터 생성 (실제 데이터가 없으면 현재 자산으로 대체)
-        for (int i = 6; i >= 0; i--) {
+        // 기간 설정
+        int days = 7; // 기본 1주일
+        switch (period.toUpperCase()) {
+            case "1W":
+                days = 7;
+                break;
+            case "1M":
+                days = 30;
+                break;
+            case "3M":
+                days = 90;
+                break;
+            case "1Y":
+                days = 365;
+                break;
+            case "ALL":
+                days = 3650; // 10년
+                break;
+            default:
+                days = 7;
+        }
+
+        // 기간별 날짜 생성 및 자산 계산
+        for (int i = days; i >= 0; i--) {
             LocalDate date = today.minusDays(i);
             String formattedDate = String.format("%02d/%02d", date.getMonthValue(), date.getDayOfMonth());
 
-            // 실제 자산 이력 데이터가 있다면 조회, 없으면 현재 자산 사용
-            // TODO: 자산 이력 테이블이 구현되면 실제 데이터 조회 로직 추가
-            // 현재는 임시로 현재 자산으로 반환
+            // 해당 날짜의 주가 기반 자산 계산
+            BigDecimal dailyTotalAsset = cashBalance;
+            for (Portfolio p : portfolios) {
+                PriceHistory priceHistory = priceHistoryRepository.findBySpotIdAndTradeDate(p.getSpotId(), date);
+                if (priceHistory != null) {
+                    BigDecimal stockValue = priceHistory.getPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+                    dailyTotalAsset = dailyTotalAsset.add(stockValue);
+                } else {
+                    // 해당 날짜의 주가가 없으면 현재 주가 사용
+                    Spot spot = spotRepository.findById(p.getSpotId()).orElse(null);
+                    if (spot != null) {
+                        BigDecimal stockValue = spot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+                        dailyTotalAsset = dailyTotalAsset.add(stockValue);
+                    }
+                }
+            }
+
             history.add(PortfolioSummaryResponse.AssetHistoryItem.builder()
                     .date(formattedDate)
-                    .totalAsset(currentTotalAsset)
+                    .totalAsset(dailyTotalAsset)
                     .build());
         }
 

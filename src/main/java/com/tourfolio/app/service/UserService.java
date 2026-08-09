@@ -2,6 +2,7 @@ package com.tourfolio.app.service;
 
 import com.tourfolio.app.entity.Attendance;
 import com.tourfolio.app.entity.User;
+import com.tourfolio.app.dto.AttendanceResponse;
 import com.tourfolio.app.dto.AuthResponse;
 import com.tourfolio.app.dto.LoginRequest;
 import com.tourfolio.app.dto.SignupRequest;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -141,5 +143,43 @@ public class UserService {
         User savedUser = userRepository.save(user);
         log.info("프로필 수정 완료: memberId={}, 새 닉네임={}", memberId, newNickname);
         return savedUser;
+    }
+
+    // 5. 출석 체크
+    @Transactional
+    public AttendanceResponse checkAttendance(Long memberId) {
+        User user = userRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "회원을 찾을 수 없습니다."));
+
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(23, 59, 59);
+
+        // 오늘 이미 출석체크 했는지 확인
+        boolean alreadyAttended = attendanceRepository.existsByMemberIdAndAttendanceDateAfter(memberId, startOfDay);
+
+        if (alreadyAttended) {
+            throw new CustomException("ALREADY_ATTENDED", "오늘 이미 출석체크를 완료했습니다.");
+        }
+
+        // 포인트 지급
+        BigDecimal attendanceBonus = new BigDecimal("1000");
+        user.setBalance(user.getBalance().add(attendanceBonus));
+        userRepository.save(user);
+
+        // 출석 기록 저장
+        attendanceRepository.save(Attendance.builder()
+                .memberId(memberId)
+                .attendanceDate(LocalDateTime.now())
+                .pointsAwarded(1000)
+                .build());
+
+        log.info("출석체크 완료: memberId={}, 지급 포인트={}, 현재 잔액={}", memberId, attendanceBonus, user.getBalance());
+
+        return AttendanceResponse.builder()
+                .pointsAwarded(attendanceBonus)
+                .currentBalance(user.getBalance())
+                .message("출석체크 완료! 1,000P가 지급되었습니다.")
+                .build();
     }
 }

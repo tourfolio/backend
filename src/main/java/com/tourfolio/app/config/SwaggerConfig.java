@@ -3,6 +3,8 @@ package com.tourfolio.app.config;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,9 +41,23 @@ public class SwaggerConfig {
                 .contact(contact)
                 .description("2026 관광데이터 활용 공모전 - 팀해달별 탐색 및 가상 주식 투자 시스템 코어 인프라 명세서");
 
+        // JWT Security Scheme
+        SecurityScheme securityScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT")
+                .description("JWT 토큰을 입력하세요 (Bearer {token})");
+
+        // Security Requirement
+        SecurityRequirement securityRequirement = new SecurityRequirement()
+                .addList("Bearer Auth");
+
         return new OpenAPI()
                 .info(info)
-                .servers(List.of(prodServer, localServer));
+                .servers(List.of(prodServer, localServer))
+                .addSecurityItem(securityRequirement)
+                .components(new io.swagger.v3.oas.models.Components()
+                        .addSecuritySchemes("Bearer Auth", securityScheme));
     }
 
     @Bean

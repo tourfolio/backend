@@ -157,9 +157,11 @@ public class StockController {
     })
     public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(
             @Parameter(description = "사용자 ID", required = true)
-            @RequestParam Long userId) {
-        log.info("GET /api/portfolio/summary - 포트폴리오 요약 조회: userId={}", userId);
-        return ResponseEntity.ok(stockService.getPortfolioSummary(userId));
+            @RequestParam Long userId,
+            @Parameter(description = "자산 추이 기간 (1W, 1M, 3M, 1Y, ALL)", example = "1W", required = false)
+            @RequestParam(required = false, defaultValue = "1W") String period) {
+        log.info("GET /api/portfolio/summary - 포트폴리오 요약 조회: userId={}, period={}", userId, period);
+        return ResponseEntity.ok(stockService.getPortfolioSummary(userId, period));
     }
 
     @PostMapping("/stocks/update-prices")
