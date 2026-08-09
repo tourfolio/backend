@@ -267,9 +267,8 @@ public class StockService {
 
                 spotRepository.save(spot);
 
-                // 자동 주가 생성 비활성화 (가짜 데이터 생성 방지)
                 // price_history INSERT (지표 원값까지 함께 보존)
-                // savePriceHistory(spot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
+                savePriceHistory(spot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
 
                 successCount++;
                 log.info("주가 정산 완료: 종목={}, 어제={}, 오늘={}, 변동률={}%, P={}, D={}, R={}, S={}",
@@ -330,9 +329,8 @@ public class StockService {
         spot.setLastUpdated(LocalDateTime.now());
         spotRepository.save(spot);
 
-        // 자동 주가 생성 비활성화 (가짜 데이터 생성 방지)
-        // savePriceHistory(spot, LocalDate.now(), currentPrice, changeRate,
-        //         spot.getTourismDataWeight(), null, null, null, null);
+        savePriceHistory(spot, LocalDate.now(), currentPrice, changeRate,
+                spot.getTourismDataWeight(), null, null, null, null);
 
         log.info("주가 유지 폴백 적용: 종목={}, 가격={} (변동 없음)",
                 spot.getName(), currentPrice);

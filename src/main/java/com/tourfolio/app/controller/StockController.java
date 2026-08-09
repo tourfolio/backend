@@ -164,16 +164,15 @@ public class StockController {
         return ResponseEntity.ok(stockService.getPortfolioSummary(userId, period));
     }
 
-    // 자동 주가 생성 비활성화 (가짜 데이터 생성 방지)
-    // @PostMapping("/stocks/update-prices")
-    // @Operation(summary = "수동 주가 업데이트 (개발/검수용)", description = "스케줄러 주기와 상관없이 주가를 즉시 갱신합니다. 개발 및 검수용으로 사용하세요.")
-    // @ApiResponses(value = {
-    //         @ApiResponse(responseCode = "200", description = "주가 업데이트 성공"),
-    //         @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    // })
-    // public ResponseEntity<Void> updatePricesManually() {
-    //     log.info("POST /api/stocks/update-prices - 수동 주가 업데이트 트리거");
-    //     stockService.updateDailyStockPrices();
-    //     return ResponseEntity.ok().build();
-    // }
+    @PostMapping("/stocks/update-prices")
+    @Operation(summary = "관광 주가 강제 정산/업데이트", description = "스케줄러 주기와 상관없이 주가를 즉시 갱신합니다. 개발 및 검수용으로 사용하세요.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "주가 업데이트 성공"),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    })
+    public ResponseEntity<Void> updatePricesManually() {
+        log.info("POST /api/stocks/update-prices - 수동 주가 업데이트 트리거");
+        stockService.updateDailyStockPrices();
+        return ResponseEntity.ok().build();
+    }
 }
