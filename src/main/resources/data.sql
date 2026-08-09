@@ -513,3 +513,36 @@ ON DUPLICATE KEY UPDATE
     r_score=VALUES(r_score),
     s_coefficient=VALUES(s_coefficient),
     created_at=VALUES(created_at);
+
+-- =========================================================
+-- 4. STOCK_SPOTS 테이블 10개 시드 데이터 INSERT
+-- =========================================================
+
+INSERT INTO stock_spots (id, spot_id, name, region_name, area_code, tier, theme, theme_tag, initial_price, current_price, prev_price, change_rate, tourism_data_weight, image_url, map_x, map_y, last_updated, created_at) VALUES
+(1, 1, '경복궁', '서울', '1', 1, '역사', '역사,궁궐,조선왕조,국보', 10000.00, 10000.00, 9500.00, 0.0526, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/98/3487598_image2_1.jpg', '126.9767219', '37.57603072', NOW(), NOW()),
+(2, 2, '성산일출봉', '제주', '39', 1, '자연', '자연,화산,유네스코 세계자연유산,일출', 10000.00, 10000.00, 9500.00, 0.0526, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/35/3343535_image2_1.jpg', '126.9415156', '33.45811112', NOW(), NOW()),
+(3, 3, '전주한옥마을', '전북', '37', 2, '역사', '역사,한옥,전통문화', 5000.00, 5000.00, 4800.00, 0.0417, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/82/3048882_image2_1.jpg', '127.1536126', '35.81827276', NOW(), NOW()),
+(4, 4, '남산서울타워', '서울', '1', 1, '문화', '문화,전망대,야경', 10000.00, 10000.00, 9500.00, 0.0526, 0.50, 'https://images.unsplash.com/photo-1538485399081-7191377e8241?w=800', '126.9878821', '37.55105454', NOW(), NOW()),
+(5, 5, '지리산 천왕봉', '경남', '36', 1, '자연', '자연,산,대한민국 100대 명산,등산', 10000.00, 10000.00, 9500.00, 0.0526, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/63/2805963_image2_1.jpg', '127.7488858', '35.30358263', NOW(), NOW()),
+(6, 6, '순천만국가정원', '전남', '38', 3, '자연', '자연,정원,꽃,힐링', 2000.00, 2000.00, 1900.00, 0.0526, 0.50, 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800', '127.4996986', '34.92860321', NOW(), NOW()),
+(7, 7, '통영케이블카', '경남', '36', 3, '문화', '문화,케이블카,한려수도,바다', 2000.00, 2000.00, 1900.00, 0.0526, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/82/2612382_image2_1.jpg', '128.4250765', '34.82659821', NOW(), NOW()),
+(8, 8, '해운대해수욕장', '부산', '6', 1, '자연', '자연,해수욕장,바다,여름', 10000.00, 10000.00, 9500.00, 0.0526, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/88/2650088_image2_1.jpg', '129.1602786', '35.15908402', NOW(), NOW()),
+(9, 9, '광안리해수욕장', '부산', '6', 2, '자연', '자연,해수욕장,바다,여름,야경', 5000.00, 5000.00, 4800.00, 0.0417, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/21/2650021_image2_1.jpg', '129.1185199', '35.15377279', NOW(), NOW()),
+(10, 10, '경주 불국사', '경북', '35', 2, '역사', '역사,사찰,유네스코 세계문화유산,국보', 5000.00, 5000.00, 4800.00, 0.0417, 0.50, 'https://tong.visitkorea.or.kr/cms/resource/28/2612328_image2_1.jpg', '129.3317254', '35.79230232', NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    name=VALUES(name),
+    region_name=VALUES(region_name),
+    area_code=VALUES(area_code),
+    tier=VALUES(tier),
+    theme=VALUES(theme),
+    theme_tag=VALUES(theme_tag),
+    initial_price=VALUES(initial_price),
+    current_price=VALUES(current_price),
+    prev_price=VALUES(prev_price),
+    change_rate=VALUES(change_rate),
+    tourism_data_weight=VALUES(tourism_data_weight),
+    image_url=VALUES(image_url),
+    map_x=VALUES(map_x),
+    map_y=VALUES(map_y),
+    last_updated=VALUES(last_updated),
+    created_at=VALUES(created_at);
