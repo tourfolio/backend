@@ -11,12 +11,14 @@ import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.dto.StockChartResponse;
 import com.tourfolio.app.dto.PortfolioSummaryResponse;
 import com.tourfolio.app.entity.Spot;
+import com.tourfolio.app.entity.StockSpot;
 import com.tourfolio.app.entity.Transaction;
 import com.tourfolio.app.entity.User;
 import com.tourfolio.app.entity.Portfolio;
 import com.tourfolio.app.entity.PriceHistory;
 import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.repository.SpotRepository;
+import com.tourfolio.app.repository.StockSpotRepository;
 import com.tourfolio.app.repository.TransactionRepository;
 import com.tourfolio.app.repository.UserRepository;
 import com.tourfolio.app.repository.PortfolioRepository;
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
 public class StockService {
 
     private final SpotRepository spotRepository;
+    private final StockSpotRepository stockSpotRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     private final PortfolioRepository portfolioRepository;
@@ -54,7 +57,7 @@ public class StockService {
         User user = userRepository.findById(request.getMemberId())
                 .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + request.getMemberId()));
 
-        Spot spot = spotRepository.findById(request.getSpotId())
+        StockSpot stockSpot = stockSpotRepository.findById(request.getSpotId())
                 .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "상장되지 않은 관광 자산 종목입니다. ID: " + request.getSpotId()));
 
         String type = request.getType().toUpperCase();
@@ -65,7 +68,7 @@ public class StockService {
         if (request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
             throw new CustomException("INVALID_QUANTITY", "거래 수량은 0보다 커야 합니다.");
         }
-        BigDecimal totalAmount = spot.getCurrentPrice().multiply(request.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = stockSpot.getCurrentPrice().multiply(request.getQuantity()).setScale(2, RoundingMode.HALF_UP);
 
         if ("BUY".equals(type)) {
             if (user.getBalance().compareTo(totalAmount) < 0) {
@@ -75,10 +78,10 @@ public class StockService {
             userRepository.save(user);
 
             // 포트폴리오 원장 갱신 및 평균 매수 평단가 가중치 계산
-            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(user.getId(), spot.getId())
+            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(user.getId(), stockSpot.getId())
                     .orElse(Portfolio.builder()
                             .memberId(user.getId())
-                            .spotId(spot.getId())
+                            .spotId(stockSpot.getId())
                             .quantity(BigDecimal.ZERO)
                             .averagePurchasePrice(BigDecimal.ZERO)
                             .updatedAt(LocalDateTime.now())
@@ -95,7 +98,7 @@ public class StockService {
             portfolioRepository.save(portfolio);
 
         } else {
-            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(user.getId(), spot.getId())
+            Portfolio portfolio = portfolioRepository.findByMemberIdAndSpotId(user.getId(), stockSpot.getId())
                     .orElseThrow(() -> new CustomException("INSUFFICIENT_STOCK", "보유하고 있지 않은 관광지 주식은 매도할 수 없습니다."));
 
             if (portfolio.getQuantity().compareTo(request.getQuantity()) < 0) {
@@ -117,16 +120,16 @@ public class StockService {
 
         Transaction transaction = Transaction.builder()
                 .memberId(user.getId())
-                .spotId(spot.getId())
+                .spotId(stockSpot.getId())
                 .type(type)
                 .quantity(request.getQuantity())
-                .price(spot.getCurrentPrice())
+                .price(stockSpot.getCurrentPrice())
                 .totalAmount(totalAmount)
                 .executedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", user.getNickname(), type, spot.getName(), request.getQuantity(), spot.getCurrentPrice());
+        log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", user.getNickname(), type, stockSpot.getName(), request.getQuantity(), stockSpot.getCurrentPrice());
         return transactionRepository.save(transaction);
     }
 
@@ -142,10 +145,10 @@ public class StockService {
         BigDecimal totalStockPurchaseCost = BigDecimal.ZERO;
 
         for (Portfolio p : portfolios) {
-            Spot spot = spotRepository.findById(p.getSpotId()).orElse(null);
-            if (spot == null) continue;
+            StockSpot stockSpot = stockSpotRepository.findById(p.getSpotId()).orElse(null);
+            if (stockSpot == null) continue;
 
-            BigDecimal evaluationAmount = spot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal evaluationAmount = stockSpot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
             BigDecimal purchaseCost = p.getAveragePurchasePrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
 
             totalStockValue = totalStockValue.add(evaluationAmount);
@@ -153,16 +156,16 @@ public class StockService {
 
             BigDecimal profitLossRate = BigDecimal.ZERO;
             if (p.getAveragePurchasePrice().compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal diff = spot.getCurrentPrice().subtract(p.getAveragePurchasePrice());
+                BigDecimal diff = stockSpot.getCurrentPrice().subtract(p.getAveragePurchasePrice());
                 profitLossRate = diff.divide(p.getAveragePurchasePrice(), 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
             }
 
             items.add(MemberAssetResponse.AssetItem.builder()
-                    .spotId(spot.getId())
-                    .spotName(spot.getName())
+                    .spotId(stockSpot.getId())
+                    .spotName(stockSpot.getName())
                     .quantity(p.getQuantity())
                     .averagePurchasePrice(p.getAveragePurchasePrice())
-                    .currentPrice(spot.getCurrentPrice())
+                    .currentPrice(stockSpot.getCurrentPrice())
                     .evaluationAmount(evaluationAmount)
                     .profitLossRate(profitLossRate)
                     .build());
@@ -218,9 +221,9 @@ public class StockService {
             log.warn("KorService2 데이터 동기화 실패 (서버 동작 계속 진행): {}", e.getMessage());
         }
 
-        // 전체 종목 조회
-        List<Spot> spots = spotRepository.findAll();
-        log.info("전체 종목 수: {}", spots.size());
+        // 전체 종목 조회 (stock_spots 테이블 사용)
+        List<StockSpot> stockSpots = stockSpotRepository.findAll();
+        log.info("전체 종목 수: {}", stockSpots.size());
 
         // S는 전국 단일 계수이므로 배치당 한 번만 산출한다
         Double s = tourIndicatorService.collectS();
@@ -229,8 +232,15 @@ public class StockService {
         int failureCount = 0;
 
         // 종목별 반복
-        for (Spot spot : spots) {
+        for (StockSpot stockSpot : stockSpots) {
             try {
+                // Spot 엔티티에서 필요한 정보 조회 (지역 코드 등)
+                Spot spot = spotRepository.findById(stockSpot.getSpotId()).orElse(null);
+                if (spot == null) {
+                    log.warn("Spot 엔티티를 찾을 수 없음: stockSpotId={}, spotId={}", stockSpot.getId(), stockSpot.getSpotId());
+                    continue;
+                }
+
                 // 어제 컨텍스트 조회
                 PriceCalculationService.YesterdayContext ctx = priceCalculationService.getYesterdayContext(spot);
 
@@ -248,7 +258,7 @@ public class StockService {
                 BigDecimal newPrice = priceCalculationService.calculateTodayPrice(spot, ctx, p, d, r, s);
 
                 // 변동률은 어제 종가(= 갱신 전 currentPrice) 대비로 계산한다
-                BigDecimal yesterdayClose = spot.getCurrentPrice();
+                BigDecimal yesterdayClose = stockSpot.getCurrentPrice();
                 BigDecimal changeRate = BigDecimal.ZERO;
                 if (yesterdayClose.compareTo(BigDecimal.ZERO) > 0) {
                     changeRate = newPrice.subtract(yesterdayClose)
@@ -259,30 +269,31 @@ public class StockService {
                 double todayTS = (p * 0.60) + (d * 0.25) + (r * 0.15);
                 BigDecimal tsScore = BigDecimal.valueOf(todayTS);
 
-                // 전날 종가(prevPrice) 갱신
-                spot.setPrevPrice(yesterdayClose);
-                spot.setCurrentPrice(newPrice);
-                spot.setLastUpdated(LocalDateTime.now());
-                spot.setTourismDataWeight(tsScore);
+                // 전날 종가(prevPrice) 갱신 (stock_spots 테이블)
+                stockSpot.setPrevPrice(yesterdayClose);
+                stockSpot.setCurrentPrice(newPrice);
+                stockSpot.setChangeRate(changeRate);
+                stockSpot.setLastUpdated(LocalDateTime.now());
+                stockSpot.setTourismDataWeight(tsScore);
 
-                spotRepository.save(spot);
+                stockSpotRepository.save(stockSpot);
 
                 // price_history INSERT (지표 원값까지 함께 보존)
-                savePriceHistory(spot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
+                savePriceHistory(stockSpot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
 
                 successCount++;
                 log.info("주가 정산 완료: 종목={}, 어제={}, 오늘={}, 변동률={}%, P={}, D={}, R={}, S={}",
-                        spot.getName(), yesterdayClose, newPrice,
+                        stockSpot.getName(), yesterdayClose, newPrice,
                         changeRate.multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP),
                         String.format("%.3f", p), String.format("%.3f", d),
                         String.format("%.3f", r), s);
 
             } catch (Exception e) {
                 failureCount++;
-                log.error("주가 정산 실패: spotId={}, name={}, error={}",
-                        spot.getId(), spot.getName(), e.getMessage());
+                log.error("주가 정산 실패: stockSpotId={}, name={}, error={}",
+                        stockSpot.getId(), stockSpot.getName(), e.getMessage());
                 // 실패 시 현재 주가를 그대로 유지 (난수 폴백 제거)
-                applyPriceHoldFallback(spot);
+                applyPriceHoldFallback(stockSpot);
             }
         }
 
@@ -291,13 +302,13 @@ public class StockService {
                 successCount, failureCount, successCount);
     }
 
-    void savePriceHistory(Spot spot, LocalDate tradeDate, BigDecimal price, BigDecimal changeRate,
+    void savePriceHistory(StockSpot stockSpot, LocalDate tradeDate, BigDecimal price, BigDecimal changeRate,
                           BigDecimal tsScore, Double p, Double d, Double r, Double s) {
         try {
-            PriceHistory history = priceHistoryRepository.findBySpotIdAndTradeDate(spot.getId(), tradeDate);
+            PriceHistory history = priceHistoryRepository.findBySpotIdAndTradeDate(stockSpot.getId(), tradeDate);
             if (history == null) {
                 history = PriceHistory.builder()
-                        .spotId(spot.getId())
+                        .spotId(stockSpot.getId())
                         .tradeDate(tradeDate)
                         .createdAt(LocalDateTime.now())
                         .build();
@@ -311,7 +322,7 @@ public class StockService {
             history.setSCoefficient(toBigDecimal(s));
             priceHistoryRepository.save(history);
         } catch (Exception e) {
-            log.error("가격 이력 저장 실패: spotId={}, error={}", spot.getId(), e.getMessage());
+            log.error("가격 이력 저장 실패: stockSpotId={}, error={}", stockSpot.getId(), e.getMessage());
         }
     }
 
@@ -320,20 +331,21 @@ public class StockService {
     }
 
     // 폴백: API 실패 시 현재 주가를 그대로 유지 (난수 제거)
-    private void applyPriceHoldFallback(Spot spot) {
-        BigDecimal currentPrice = spot.getCurrentPrice();
+    private void applyPriceHoldFallback(StockSpot stockSpot) {
+        BigDecimal currentPrice = stockSpot.getCurrentPrice();
         BigDecimal changeRate = BigDecimal.ZERO;
 
-        spot.setPrevPrice(currentPrice);
-        spot.setCurrentPrice(currentPrice);
-        spot.setLastUpdated(LocalDateTime.now());
-        spotRepository.save(spot);
+        stockSpot.setPrevPrice(currentPrice);
+        stockSpot.setCurrentPrice(currentPrice);
+        stockSpot.setChangeRate(changeRate);
+        stockSpot.setLastUpdated(LocalDateTime.now());
+        stockSpotRepository.save(stockSpot);
 
-        savePriceHistory(spot, LocalDate.now(), currentPrice, changeRate,
-                spot.getTourismDataWeight(), null, null, null, null);
+        savePriceHistory(stockSpot, LocalDate.now(), currentPrice, changeRate,
+                stockSpot.getTourismDataWeight(), null, null, null, null);
 
         log.info("주가 유지 폴백 적용: 종목={}, 가격={} (변동 없음)",
-                spot.getName(), currentPrice);
+                stockSpot.getName(), currentPrice);
     }
 
 
@@ -341,8 +353,8 @@ public class StockService {
         return currentPrice.add(currentPrice.multiply(finalChangeRate)).setScale(0, RoundingMode.HALF_UP);
     }
 
-    private String getImageUrlWithFallback(Spot spot) {
-        return spot.getImageUrl() != null && !spot.getImageUrl().isEmpty() ? spot.getImageUrl() : "https://via.placeholder.com/800x600?text=No+Image";
+    private String getImageUrlWithFallback(StockSpot stockSpot) {
+        return stockSpot.getImageUrl() != null && !stockSpot.getImageUrl().isEmpty() ? stockSpot.getImageUrl() : "https://via.placeholder.com/800x600?text=No+Image";
     }
 
     /**
@@ -447,14 +459,14 @@ public class StockService {
     }
 
     public List<StockResponse> getAllStocks() {
-        return spotRepository.findAllByOrderByTierAscNameAsc().stream()
+        return stockSpotRepository.findAllByOrderByTierAscNameAsc().stream()
                 .map(this::mapToStockResponse)
                 .toList();
     }
 
-    private StockResponse mapToStockResponse(Spot spot) {
+    private StockResponse mapToStockResponse(StockSpot stockSpot) {
         // 최신 price_history 레코드 조회 (최신 주가 및 등락률 반영)
-        PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(spot.getId());
+        PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(stockSpot.getId());
 
         BigDecimal currentPrice;
         BigDecimal prevPrice;
@@ -468,67 +480,58 @@ public class StockService {
             prevPrice = currentPrice.subtract(currentPrice.multiply(latestHistory.getChangeRate())).setScale(0, RoundingMode.HALF_UP);
             lastUpdated = latestHistory.getCreatedAt();
         } else {
-            // price_history가 없으면 spots 테이블 데이터 사용 (폴백)
-            currentPrice = spot.getCurrentPrice();
-            prevPrice = spot.getPrevPrice();
-            changeRate = BigDecimal.ZERO;
-            if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-                changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                        .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
-            }
-            lastUpdated = spot.getLastUpdated();
+            // price_history가 없으면 stock_spots 테이블 데이터 사용 (폴백)
+            currentPrice = stockSpot.getCurrentPrice();
+            prevPrice = stockSpot.getPrevPrice();
+            changeRate = stockSpot.getChangeRate() != null ? stockSpot.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+            lastUpdated = stockSpot.getLastUpdated();
         }
 
         return StockResponse.builder()
-                .id(spot.getId())
-                .name(spot.getName())
-                .areaCode(spot.getAreaCode())
-                .regionName(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
-                .tier(spot.getTier())
+                .id(stockSpot.getId())
+                .name(stockSpot.getName())
+                .areaCode(stockSpot.getAreaCode())
+                .regionName(stockSpot.getRegionName())
+                .tier(stockSpot.getTier())
                 .currentPrice(currentPrice)
                 .prevPrice(prevPrice)
                 .changeRate(changeRate)
                 .lastUpdated(lastUpdated)
-                .imageUrl(getImageUrlWithFallback(spot))
-                .mapX(spot.getMapX())
-                .mapY(spot.getMapY())
+                .imageUrl(getImageUrlWithFallback(stockSpot))
+                .mapX(stockSpot.getMapX())
+                .mapY(stockSpot.getMapY())
                 .build();
     }
 
     public List<StockResponse> getTopGainers() {
-        List<Spot> spots = spotRepository.findAllOrderByChangeRateDesc();
-        return spots.stream()
+        List<StockSpot> stockSpots = stockSpotRepository.findAllOrderByChangeRateDesc();
+        return stockSpots.stream()
                 .limit(3)
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
     }
 
     public List<StockResponse> getTopLosers() {
-        List<Spot> spots = spotRepository.findAllOrderByChangeRateAsc();
-        return spots.stream()
+        List<StockSpot> stockSpots = stockSpotRepository.findAllOrderByChangeRateAsc();
+        return stockSpots.stream()
                 .limit(3)
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
     }
 
     public List<RegionalIndexResponse> getRegionalIndex() {
-        List<Spot> allSpots = spotRepository.findAll();
-        Map<String, List<Spot>> spotsByRegion = allSpots.stream()
-                .collect(Collectors.groupingBy(Spot::getRegion));
+        List<StockSpot> allStockSpots = stockSpotRepository.findAll();
+        Map<String, List<StockSpot>> spotsByRegion = allStockSpots.stream()
+                .collect(Collectors.groupingBy(StockSpot::getRegionName));
 
         List<RegionalIndexResponse> regionalIndices = new ArrayList<>();
-        for (Map.Entry<String, List<Spot>> entry : spotsByRegion.entrySet()) {
+        for (Map.Entry<String, List<StockSpot>> entry : spotsByRegion.entrySet()) {
             String region = entry.getKey();
-            List<Spot> regionSpots = entry.getValue();
+            List<StockSpot> regionSpots = entry.getValue();
 
             BigDecimal totalChangeRate = BigDecimal.ZERO;
-            for (Spot spot : regionSpots) {
-                BigDecimal changeRate = BigDecimal.ZERO;
-                if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-                    changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                            .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP);
-                }
+            for (StockSpot stockSpot : regionSpots) {
+                BigDecimal changeRate = stockSpot.getChangeRate() != null ? stockSpot.getChangeRate() : BigDecimal.ZERO;
                 totalChangeRate = totalChangeRate.add(changeRate);
             }
 
@@ -548,36 +551,36 @@ public class StockService {
     }
 
     public List<StockResponse> searchStocks(String region, String theme, String sort) {
-        List<Spot> spots;
+        List<StockSpot> stockSpots;
 
         switch (sort) {
             case "price":
-                spots = spotRepository.findByRegionAndThemeOrderByPriceDesc(region, theme);
+                stockSpots = stockSpotRepository.findByRegionAndThemeOrderByPriceDesc(region, theme);
                 break;
             case "price_asc":
-                spots = spotRepository.findByRegionAndThemeOrderByPriceAsc(region, theme);
+                stockSpots = stockSpotRepository.findByRegionAndThemeOrderByPriceAsc(region, theme);
                 break;
             case "change_rate":
-                spots = spotRepository.findByRegionAndThemeOrderByChangeRateDesc(region, theme);
+                stockSpots = stockSpotRepository.findByRegionAndThemeOrderByChangeRateDesc(region, theme);
                 break;
             case "change_rate_asc":
-                spots = spotRepository.findByRegionAndThemeOrderByChangeRateAsc(region, theme);
+                stockSpots = stockSpotRepository.findByRegionAndThemeOrderByChangeRateAsc(region, theme);
                 break;
             case "tier":
-                spots = spotRepository.findByRegionAndThemeOrderByTierAsc(region, theme);
+                stockSpots = stockSpotRepository.findByRegionAndThemeOrderByTierAsc(region, theme);
                 break;
             default:
-                spots = spotRepository.findByRegionAndTheme(region, theme);
+                stockSpots = stockSpotRepository.findByRegionAndTheme(region, theme);
                 break;
         }
 
-        return spots.stream()
+        return stockSpots.stream()
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
     }
 
     public List<StockResponse> searchStocksUnified(String region, String keyword, List<String> tags, String sortBy, String sortOrder) {
-        List<Spot> spots;
+        List<StockSpot> stockSpots;
         String normalizedRegion = ("ALL".equals(region) || "전체".equals(region) || region == null || region.trim().isEmpty()) ? null : region;
         String normalizedKeyword = (keyword == null || keyword.trim().isEmpty()) ? null : keyword.trim();
         List<String> normalizedTags = (tags == null || tags.isEmpty()) ? null : tags;
@@ -587,34 +590,31 @@ public class StockService {
         // 기본 조회
         if (normalizedKeyword != null) {
             // 키워드 검색: 이름, 지역명, 태그명 검색
-            spots = spotRepository.findAll().stream()
-                    .filter(spot -> normalizedRegion == null ||
-                            normalizedRegion.equals(spot.getRegion()) ||
-                            normalizedRegion.equals(spot.getAreaCode()) ||
-                            normalizedRegion.equals(spot.getAreaName()))
-                    .filter(spot -> normalizedTags == null || normalizedTags.isEmpty() || (spot.getThemeTag() != null && normalizedTags.stream()
-                            .anyMatch(tag -> spot.getThemeTag().toLowerCase().contains(tag.toLowerCase()))))
-                    .filter(spot -> spot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
-                                   (spot.getRegion() != null && spot.getRegion().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
-                                   (spot.getAreaName() != null && spot.getAreaName().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
-                                   (spot.getThemeTag() != null && spot.getThemeTag().toLowerCase().contains(normalizedKeyword.toLowerCase())))
+            stockSpots = stockSpotRepository.findAll().stream()
+                    .filter(stockSpot -> normalizedRegion == null ||
+                            normalizedRegion.equals(stockSpot.getRegionName()) ||
+                            normalizedRegion.equals(stockSpot.getAreaCode()))
+                    .filter(stockSpot -> normalizedTags == null || normalizedTags.isEmpty() || (stockSpot.getThemeTag() != null && normalizedTags.stream()
+                            .anyMatch(tag -> stockSpot.getThemeTag().toLowerCase().contains(tag.toLowerCase()))))
+                    .filter(stockSpot -> stockSpot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
+                                   (stockSpot.getRegionName() != null && stockSpot.getRegionName().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
+                                   (stockSpot.getThemeTag() != null && stockSpot.getThemeTag().toLowerCase().contains(normalizedKeyword.toLowerCase())))
                     .collect(Collectors.toList());
         } else {
             // 지역 필터만 적용 (한글 지역명, 지역 코드 모두 지원)
             if (normalizedRegion != null) {
-                spots = spotRepository.findAll().stream()
-                        .filter(spot -> normalizedRegion.equals(spot.getRegion()) ||
-                                       normalizedRegion.equals(spot.getAreaCode()) ||
-                                       normalizedRegion.equals(spot.getAreaName()))
+                stockSpots = stockSpotRepository.findAll().stream()
+                        .filter(stockSpot -> normalizedRegion.equals(stockSpot.getRegionName()) ||
+                                       normalizedRegion.equals(stockSpot.getAreaCode()))
                         .collect(Collectors.toList());
             } else {
-                spots = spotRepository.findAll();
+                stockSpots = stockSpotRepository.findAll();
             }
             // 다중 태그 필터 적용 (OR 조건)
             if (normalizedTags != null && !normalizedTags.isEmpty()) {
-                spots = spots.stream()
-                        .filter(spot -> spot.getThemeTag() != null && normalizedTags.stream()
-                                .anyMatch(tag -> spot.getThemeTag().toLowerCase().contains(tag.toLowerCase())))
+                stockSpots = stockSpots.stream()
+                        .filter(stockSpot -> stockSpot.getThemeTag() != null && normalizedTags.stream()
+                                .anyMatch(tag -> stockSpot.getThemeTag().toLowerCase().contains(tag.toLowerCase())))
                         .collect(Collectors.toList());
             }
         }
@@ -622,57 +622,55 @@ public class StockService {
         // 정렬 적용
         switch (normalizedSortBy) {
             case "price":
-                spots = "DESC".equals(normalizedSortOrder) ?
-                        spots.stream().sorted(Comparator.comparing(Spot::getCurrentPrice).reversed()).collect(Collectors.toList()) :
-                        spots.stream().sorted(Comparator.comparing(Spot::getCurrentPrice)).collect(Collectors.toList());
+                stockSpots = "DESC".equals(normalizedSortOrder) ?
+                        stockSpots.stream().sorted(Comparator.comparing(StockSpot::getCurrentPrice).reversed()).collect(Collectors.toList()) :
+                        stockSpots.stream().sorted(Comparator.comparing(StockSpot::getCurrentPrice)).collect(Collectors.toList());
                 break;
             case "changeRate":
-                spots = "DESC".equals(normalizedSortOrder) ?
-                        spots.stream().sorted(Comparator.comparing((Spot s) -> calculateChangeRate(s)).reversed()).collect(Collectors.toList()) :
-                        spots.stream().sorted(Comparator.comparing(this::calculateChangeRate)).collect(Collectors.toList());
+                stockSpots = "DESC".equals(normalizedSortOrder) ?
+                        stockSpots.stream().sorted(Comparator.comparing((StockSpot s) -> calculateChangeRate(s)).reversed()).collect(Collectors.toList()) :
+                        stockSpots.stream().sorted(Comparator.comparing(this::calculateChangeRate)).collect(Collectors.toList());
                 break;
             case "name":
-                spots = "DESC".equals(normalizedSortOrder) ?
-                        spots.stream().sorted(Comparator.comparing(Spot::getName).reversed()).collect(Collectors.toList()) :
-                        spots.stream().sorted(Comparator.comparing(Spot::getName)).collect(Collectors.toList());
+                stockSpots = "DESC".equals(normalizedSortOrder) ?
+                        stockSpots.stream().sorted(Comparator.comparing(StockSpot::getName).reversed()).collect(Collectors.toList()) :
+                        stockSpots.stream().sorted(Comparator.comparing(StockSpot::getName)).collect(Collectors.toList());
                 break;
             case "tier":
-                spots = "DESC".equals(normalizedSortOrder) ?
-                        spots.stream().sorted(Comparator.comparing(Spot::getTier).reversed()).collect(Collectors.toList()) :
-                        spots.stream().sorted(Comparator.comparing(Spot::getTier)).collect(Collectors.toList());
+                stockSpots = "DESC".equals(normalizedSortOrder) ?
+                        stockSpots.stream().sorted(Comparator.comparing(StockSpot::getTier).reversed()).collect(Collectors.toList()) :
+                        stockSpots.stream().sorted(Comparator.comparing(StockSpot::getTier)).collect(Collectors.toList());
                 break;
             default:
                 // 기본: changeRate DESC
-                spots = spots.stream().sorted(Comparator.comparing((Spot s) -> calculateChangeRate(s)).reversed()).collect(Collectors.toList());
+                stockSpots = stockSpots.stream().sorted(Comparator.comparing((StockSpot s) -> calculateChangeRate(s)).reversed()).collect(Collectors.toList());
                 break;
         }
 
-        return spots.stream()
+        return stockSpots.stream()
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
     }
 
-    private BigDecimal calculateChangeRate(Spot spot) {
+    private BigDecimal calculateChangeRate(StockSpot stockSpot) {
         // 최신 price_history 레코드 조회 (최신 등락률 반영)
-        PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(spot.getId());
+        PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(stockSpot.getId());
 
         if (latestHistory != null) {
             // price_history의 최신 등락률 사용
             return latestHistory.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
         } else {
-            // price_history가 없으면 spots 테이블 데이터 사용 (폴백)
-            if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-                return spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                        .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+            // price_history가 없으면 stock_spots 테이블 데이터 사용 (폴백)
+            if (stockSpot.getChangeRate() != null) {
+                return stockSpot.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
             }
             return BigDecimal.ZERO;
         }
     }
 
     public List<PriceHistoryResponse> getPriceHistory(Long spotId, String period) {
-        Spot spot = spotRepository.findById(spotId).orElse(null);
-        if (spot == null) {
+        StockSpot stockSpot = stockSpotRepository.findById(spotId).orElse(null);
+        if (stockSpot == null) {
             return List.of();
         }
 
@@ -704,8 +702,8 @@ public class StockService {
     }
 
     public List<StockChartResponse> getStockChart(Long spotId, String period) {
-        Spot spot = spotRepository.findById(spotId).orElse(null);
-        if (spot == null) {
+        StockSpot stockSpot = stockSpotRepository.findById(spotId).orElse(null);
+        if (stockSpot == null) {
             return List.of();
         }
 
@@ -746,10 +744,10 @@ public class StockService {
         BigDecimal totalPurchase = BigDecimal.ZERO;
 
         for (Portfolio p : portfolios) {
-            Spot spot = spotRepository.findById(p.getSpotId()).orElse(null);
-            if (spot == null) continue;
+            StockSpot stockSpot = stockSpotRepository.findById(p.getSpotId()).orElse(null);
+            if (stockSpot == null) continue;
 
-            BigDecimal evaluationAmount = spot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal evaluationAmount = stockSpot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
             BigDecimal purchaseCost = p.getAveragePurchasePrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
 
             totalEvaluation = totalEvaluation.add(evaluationAmount);
@@ -836,10 +834,10 @@ public class StockService {
 
     @Transactional(readOnly = true)
     public List<StockResponse> getTrendingStocks() {
-        List<Spot> allSpots = spotRepository.findAll();
+        List<StockSpot> allSpots = stockSpotRepository.findAll();
         // 등락률 기준 상위 10개 종목 반환
         return allSpots.stream()
-                .sorted(Comparator.comparing((Spot s) -> calculateChangeRate(s)).reversed())
+                .sorted(Comparator.comparing((StockSpot s) -> calculateChangeRate(s)).reversed())
                 .limit(10)
                 .map(this::mapToStockResponse)
                 .collect(Collectors.toList());
