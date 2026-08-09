@@ -19,16 +19,17 @@ public class AdminController {
 
     private final StockService stockService;
 
-    @PostMapping("/calculate")
-    @Operation(summary = "주가 정산 배치 수동 실행",
-            description = "관광 지표(P/D/R/S)를 수집하여 전 종목의 주가를 정산합니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "정산 배치 실행 성공"),
-            @ApiResponse(responseCode = "500", description = "서버 내부 오류")
-    })
-    public String forceCalculate() {
-        stockService.updateDailyStockPrices();
-        return "SUCCESS: 모든 종목의 주가가 계산되었습니다.";
-    }
+    // 자동 주가 생성 비활성화 (가짜 데이터 생성 방지)
+    // @PostMapping("/calculate")
+    // @Operation(summary = "주가 정산 배치 수동 실행",
+    //         description = "관광 지표(P/D/R/S)를 수집하여 전 종목의 주가를 정산합니다.")
+    // @ApiResponses(value = {
+    //         @ApiResponse(responseCode = "200", description = "정산 배치 실행 성공"),
+    //         @ApiResponse(responseCode = "500", description = "서버 내부 오류")
+    // })
+    // public String forceCalculate() {
+    //     stockService.updateDailyStockPrices();
+    //     return "SUCCESS: 모든 종목의 주가가 계산되었습니다.";
+    // }
 
 }

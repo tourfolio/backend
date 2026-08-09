@@ -211,8 +211,12 @@ public class StockService {
         // 캐시 초기화
         tourIndicatorService.clearCache();
 
-        // KorService2 데이터 동기화 (이미지, GPS 좌표)
-        syncKorService2Data();
+        // KorService2 데이터 동기화 (이미지, GPS 좌표) - 안전한 예외 처리
+        try {
+            syncKorService2Data();
+        } catch (Exception e) {
+            log.warn("KorService2 데이터 동기화 실패 (서버 동작 계속 진행): {}", e.getMessage());
+        }
 
         // 전체 종목 조회
         List<Spot> spots = spotRepository.findAll();
@@ -263,8 +267,9 @@ public class StockService {
 
                 spotRepository.save(spot);
 
+                // 자동 주가 생성 비활성화 (가짜 데이터 생성 방지)
                 // price_history INSERT (지표 원값까지 함께 보존)
-                savePriceHistory(spot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
+                // savePriceHistory(spot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
 
                 successCount++;
                 log.info("주가 정산 완료: 종목={}, 어제={}, 오늘={}, 변동률={}%, P={}, D={}, R={}, S={}",
@@ -325,8 +330,9 @@ public class StockService {
         spot.setLastUpdated(LocalDateTime.now());
         spotRepository.save(spot);
 
-        savePriceHistory(spot, LocalDate.now(), currentPrice, changeRate,
-                spot.getTourismDataWeight(), null, null, null, null);
+        // 자동 주가 생성 비활성화 (가짜 데이터 생성 방지)
+        // savePriceHistory(spot, LocalDate.now(), currentPrice, changeRate,
+        //         spot.getTourismDataWeight(), null, null, null, null);
 
         log.info("주가 유지 폴백 적용: 종목={}, 가격={} (변동 없음)",
                 spot.getName(), currentPrice);
@@ -637,6 +643,11 @@ public class StockService {
     }
 
     public List<PriceHistoryResponse> getPriceHistory(Long spotId, String period) {
+        Spot spot = spotRepository.findById(spotId).orElse(null);
+        if (spot == null) {
+            return List.of();
+        }
+
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = switch (period) {
             case "1w" -> endDate.minusWeeks(1);
@@ -665,6 +676,11 @@ public class StockService {
     }
 
     public List<StockChartResponse> getStockChart(Long spotId, String period) {
+        Spot spot = spotRepository.findById(spotId).orElse(null);
+        if (spot == null) {
+            return List.of();
+        }
+
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = switch (period.toUpperCase()) {
             case "1W" -> endDate.minusDays(7);
