@@ -455,22 +455,43 @@ public class StockService {
     }
 
     private StockResponse mapToStockResponse(Spot spot) {
-        BigDecimal changeRate = BigDecimal.ZERO;
-        if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-            changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                    .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+        // 최신 price_history 레코드 조회 (최신 주가 및 등락률 반영)
+        PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(spot.getId());
+
+        BigDecimal currentPrice;
+        BigDecimal prevPrice;
+        BigDecimal changeRate;
+        LocalDateTime lastUpdated;
+
+        if (latestHistory != null) {
+            // price_history의 최신 데이터 사용
+            currentPrice = latestHistory.getPrice();
+            changeRate = latestHistory.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+            prevPrice = currentPrice.subtract(currentPrice.multiply(latestHistory.getChangeRate())).setScale(0, RoundingMode.HALF_UP);
+            lastUpdated = latestHistory.getCreatedAt();
+        } else {
+            // price_history가 없으면 spots 테이블 데이터 사용 (폴백)
+            currentPrice = spot.getCurrentPrice();
+            prevPrice = spot.getPrevPrice();
+            changeRate = BigDecimal.ZERO;
+            if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
+                changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
+                        .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+            }
+            lastUpdated = spot.getLastUpdated();
         }
+
         return StockResponse.builder()
                 .id(spot.getId())
                 .name(spot.getName())
                 .areaCode(spot.getAreaCode())
                 .regionName(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
                 .tier(spot.getTier())
-                .currentPrice(spot.getCurrentPrice())
-                .prevPrice(spot.getPrevPrice())
+                .currentPrice(currentPrice)
+                .prevPrice(prevPrice)
                 .changeRate(changeRate)
-                .lastUpdated(spot.getLastUpdated())
+                .lastUpdated(lastUpdated)
                 .imageUrl(getImageUrlWithFallback(spot))
                 .mapX(spot.getMapX())
                 .mapY(spot.getMapY())
@@ -634,12 +655,21 @@ public class StockService {
     }
 
     private BigDecimal calculateChangeRate(Spot spot) {
-        if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-            return spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                    .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+        // 최신 price_history 레코드 조회 (최신 등락률 반영)
+        PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(spot.getId());
+
+        if (latestHistory != null) {
+            // price_history의 최신 등락률 사용
+            return latestHistory.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+        } else {
+            // price_history가 없으면 spots 테이블 데이터 사용 (폴백)
+            if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
+                return spot.getCurrentPrice().subtract(spot.getPrevPrice())
+                        .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+            }
+            return BigDecimal.ZERO;
         }
-        return BigDecimal.ZERO;
     }
 
     public List<PriceHistoryResponse> getPriceHistory(Long spotId, String period) {
