@@ -9,6 +9,7 @@ import com.tourfolio.app.dto.RegionalIndexResponse;
 import com.tourfolio.app.dto.StockChartResponse;
 import com.tourfolio.app.dto.PortfolioSummaryResponse;
 import com.tourfolio.app.entity.Transaction;
+import com.tourfolio.app.security.SecurityUtil;
 import com.tourfolio.app.service.StockService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -143,8 +144,8 @@ public class StockController {
     @GetMapping("/portfolio")
     @Operation(summary = "회원 포트폴리오 조회", description = "회원의 현금, 보유 주식 평가금액, 수익률, 보유 종목 목록을 조회합니다.")
     public ResponseEntity<MemberAssetResponse> getMemberAssets(
-            @RequestParam Long memberId,
             @RequestParam(required = false, defaultValue = "profit_rate") String sort) {
+        Long memberId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/portfolio - 유저 포트폴리오 자산 스크리너 조회 ID: {}, sort={}", memberId, sort);
         return ResponseEntity.ok(stockService.getMemberAssets(memberId, sort));
     }
@@ -156,10 +157,9 @@ public class StockController {
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
     public ResponseEntity<PortfolioSummaryResponse> getPortfolioSummary(
-            @Parameter(description = "사용자 ID", required = true)
-            @RequestParam Long userId,
             @Parameter(description = "자산 추이 기간 (1W, 1M, 3M, 1Y, ALL)", example = "1W", required = false)
             @RequestParam(required = false, defaultValue = "1W") String period) {
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/portfolio/summary - 포트폴리오 요약 조회: userId={}, period={}", userId, period);
         return ResponseEntity.ok(stockService.getPortfolioSummary(userId, period));
     }

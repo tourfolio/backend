@@ -3,6 +3,7 @@ package com.tourfolio.app.controller;
 
 import com.tourfolio.app.dto.WatchlistResponse;
 import com.tourfolio.app.entity.Watchlist;
+import com.tourfolio.app.security.SecurityUtil;
 import com.tourfolio.app.service.WatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,9 +34,8 @@ public class WatchlistController {
             @ApiResponse(responseCode = "404", description = "사용자 또는 주식 종목을 찾을 수 없음")
     })
     public ResponseEntity<Watchlist> addToWatchlist(
-            @PathVariable Long spotId,
-            @Parameter(description = "사용자 ID", required = true, example = "1")
-            @RequestParam Long userId) {
+            @PathVariable Long spotId) {
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("POST /api/watchlist/{} - 관심 등록: userId={}", spotId, userId);
         Watchlist watchlist = watchlistService.addToWatchlist(userId, spotId);
         return ResponseEntity.ok(watchlist);
@@ -49,9 +49,8 @@ public class WatchlistController {
             @ApiResponse(responseCode = "404", description = "사용자 또는 주식 종목을 찾을 수 없음")
     })
     public ResponseEntity<Void> removeFromWatchlist(
-            @PathVariable Long spotId,
-            @Parameter(description = "사용자 ID", required = true, example = "1")
-            @RequestParam Long userId) {
+            @PathVariable Long spotId) {
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("DELETE /api/watchlist/{} - 관심 해제: userId={}", spotId, userId);
         watchlistService.removeFromWatchlist(userId, spotId);
         return ResponseEntity.ok().build();
@@ -63,9 +62,8 @@ public class WatchlistController {
             @ApiResponse(responseCode = "200", description = "관심목록 조회 성공"),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
     })
-    public ResponseEntity<List<WatchlistResponse>> getWatchlist(
-            @Parameter(description = "사용자 ID", required = true, example = "1")
-            @RequestParam Long userId) {
+    public ResponseEntity<List<WatchlistResponse>> getWatchlist() {
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/watchlist - 내 관심 목록 조회: userId={}", userId);
         List<WatchlistResponse> watchlist = watchlistService.getWatchlist(userId);
         return ResponseEntity.ok(watchlist);

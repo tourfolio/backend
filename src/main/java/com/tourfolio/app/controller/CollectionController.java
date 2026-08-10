@@ -4,6 +4,7 @@ import com.tourfolio.app.dto.AcquireCardRequest;
 import com.tourfolio.app.dto.CardDetailResponse;
 import com.tourfolio.app.dto.CollectionResponse;
 import com.tourfolio.app.entity.Card;
+import com.tourfolio.app.security.SecurityUtil;
 import com.tourfolio.app.service.CollectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,9 +37,6 @@ public class CollectionController {
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     public ResponseEntity<CollectionResponse> getCollection(
-            @Parameter(description = "유저 ID", example = "1", required = true)
-            @RequestParam Long userId,
-
             @Parameter(description = "지역 필터 (예: 서울, 부산, 제주)", example = "서울", required = false)
             @RequestParam(required = false) String region,
 
@@ -48,6 +46,7 @@ public class CollectionController {
             @Parameter(description = "희귀도 필터 (LEGEND, EPIC, RARE, NORMAL)", example = "EPIC", required = false)
             @RequestParam(required = false) Card.CardRarity rarity) {
 
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/collection - 수집 메인 화면 조회 요청: userId={}, region={}, theme={}, rarity={}", 
                 userId, region, theme, rarity);
 
@@ -66,12 +65,10 @@ public class CollectionController {
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     public ResponseEntity<CardDetailResponse> getCardDetail(
-            @Parameter(description = "유저 ID", example = "1", required = true)
-            @RequestParam Long userId,
-
             @Parameter(description = "카드 ID", example = "1", required = true)
             @PathVariable Long cardId) {
 
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/collection/cards/{} - 포토카드 상세 조회 요청: userId={}", cardId, userId);
 
         CardDetailResponse response = collectionService.getCardDetail(userId, cardId);
@@ -90,14 +87,12 @@ public class CollectionController {
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     public ResponseEntity<Void> acquireCard(
-            @Parameter(description = "유저 ID", example = "1", required = true)
-            @RequestParam Long userId,
-
             @Parameter(description = "카드 ID", example = "1", required = true)
             @PathVariable Long cardId,
 
             @Valid @RequestBody AcquireCardRequest request) {
 
+        Long userId = SecurityUtil.getCurrentUserId();
         log.info("POST /api/v1/collection/cards/{}/acquire - GPS 기반 카드 획득 요청: userId={}, distanceInMeters={}",
                 cardId, userId, request.getDistanceInMeters());
 
