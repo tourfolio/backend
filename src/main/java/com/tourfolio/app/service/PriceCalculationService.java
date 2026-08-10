@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -50,11 +51,34 @@ public class PriceCalculationService {
         return null;
     }
 
+    public YesterdayContext getContextForDate(Spot spot, LocalDate targetDate) {
+        try {
+            LocalDate previousDate = targetDate.minusDays(1);
+            PriceHistory history = priceHistoryRepository.findBySpotIdAndTradeDate(spot.getId(), previousDate);
+            if (history != null) {
+                return new YesterdayContext(
+                        toDouble(history.getTsScore()),
+                        history.getPrice(),
+                        toDouble(history.getPScore()),
+                        toDouble(history.getDScore()),
+                        toDouble(history.getRScore())
+                );
+            }
+        } catch (Exception e) {
+            log.warn("특정 날짜 컨텍스트 조회 실패: spotId={}, targetDate={}, error={}", spot.getId(), targetDate, e.getMessage());
+        }
+        return null;
+    }
+
     private static Double toDouble(BigDecimal value) {
         return value != null ? value.doubleValue() : null;
     }
 
     public BigDecimal calculateTodayPrice(Spot spot, YesterdayContext ctx, Double p, Double d, Double r, Double s) {
+        return calculateTodayPrice(spot, ctx, p, d, r, s, null);
+    }
+
+    public BigDecimal calculateTodayPrice(Spot spot, YesterdayContext ctx, Double p, Double d, Double r, Double s, LocalDate targetDate) {
         if (ctx == null || ctx.yesterdayTS() == null || ctx.yesterdayPrice() == null) {
             return spot.getCurrentPrice();
         }
@@ -63,7 +87,7 @@ public class PriceCalculationService {
             double todayTS = (p * 0.60) + (d * 0.25) + (r * 0.15);
             double yesterdayTS = ctx.yesterdayTS();
             double tsChange = (yesterdayTS != 0) ? (todayTS - yesterdayTS) / yesterdayTS : 0.0;
-            double us = calculateUserSentiment(spot);
+            double us = calculateUserSentiment(spot, targetDate);
 
             double raw = ((tsChange * 0.8) + (us * 0.2)) * s;
             double finalChange = NormalizationConstants.clampFinalChange(raw);
@@ -79,13 +103,19 @@ public class PriceCalculationService {
     }
 
     private double calculateUserSentiment(Spot spot) {
-        try {
-            LocalDateTime yesterdayStart = LocalDateTime.now().minusDays(1).withHour(0).withMinute(0).withSecond(0);
-            LocalDateTime yesterdayEnd = LocalDateTime.now().minusDays(1).withHour(23).withMinute(59).withSecond(59);
+        return calculateUserSentiment(spot, null);
+    }
 
-            // [수정 완료] 레포지토리와 메서드명 일치
+    private double calculateUserSentiment(Spot spot, LocalDate targetDate) {
+        try {
+            LocalDate calculationDate = targetDate != null ? targetDate : LocalDate.now();
+            LocalDate previousDate = calculationDate.minusDays(1);
+            
+            LocalDateTime dayStart = previousDate.atStartOfDay();
+            LocalDateTime dayEnd = previousDate.atTime(23, 59, 59);
+
             List<Transaction> transactions = transactionRepository.findBySpotIdAndCreatedAtBetweenOrderByCreatedAtAsc(
-                    spot.getId(), yesterdayStart, yesterdayEnd
+                    spot.getId(), dayStart, dayEnd
             );
 
             if (transactions.isEmpty()) return 0.0;

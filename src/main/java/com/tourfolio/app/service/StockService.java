@@ -209,7 +209,13 @@ public class StockService {
 
     @Transactional
     public void updateDailyStockPrices() {
-        log.info("=== 관광 지표 기반 주가 정산 배치 시작 ===");
+        updateDailyStockPrices(LocalDate.now());
+    }
+
+    @Transactional
+    public void updateDailyStockPrices(LocalDate targetDate) {
+        LocalDate calculationDate = targetDate != null ? targetDate : LocalDate.now();
+        log.info("=== 관광 지표 기반 주가 정산 배치 시작: targetDate={} ===", calculationDate);
 
         // 캐시 초기화
         tourIndicatorService.clearCache();
@@ -241,8 +247,13 @@ public class StockService {
                     continue;
                 }
 
-                // 어제 컨텍스트 조회
-                PriceCalculationService.YesterdayContext ctx = priceCalculationService.getYesterdayContext(spot);
+                // 어제 컨텍스트 조회 (targetDate가 있으면 해당 날짜의 전일 데이터 조회)
+                PriceCalculationService.YesterdayContext ctx;
+                if (targetDate != null) {
+                    ctx = priceCalculationService.getContextForDate(spot, calculationDate);
+                } else {
+                    ctx = priceCalculationService.getYesterdayContext(spot);
+                }
 
                 // 이전 지표값 (API 실패 시 폴백 소스). 이력이 없으면 중립값 0.5
                 Double previousP = ctx != null && ctx.yesterdayP() != null ? ctx.yesterdayP() : 0.5;
@@ -255,7 +266,7 @@ public class StockService {
                 Double r = tourIndicatorService.collectR(spot.getAreaCode(), spot.getSignguCd(), previousR);
 
                 // 가격 계산
-                BigDecimal newPrice = priceCalculationService.calculateTodayPrice(spot, ctx, p, d, r, s);
+                BigDecimal newPrice = priceCalculationService.calculateTodayPrice(spot, ctx, p, d, r, s, calculationDate);
 
                 // 변동률은 어제 종가(= 갱신 전 currentPrice) 대비로 계산한다
                 BigDecimal yesterdayClose = stockSpot.getCurrentPrice();
@@ -279,7 +290,7 @@ public class StockService {
                 stockSpotRepository.save(stockSpot);
 
                 // price_history INSERT (지표 원값까지 함께 보존)
-                savePriceHistory(stockSpot, LocalDate.now(), newPrice, changeRate, tsScore, p, d, r, s);
+                savePriceHistory(stockSpot, calculationDate, newPrice, changeRate, tsScore, p, d, r, s);
 
                 successCount++;
                 log.info("주가 정산 완료: 종목={}, 어제={}, 오늘={}, 변동률={}%, P={}, D={}, R={}, S={}",

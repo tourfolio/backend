@@ -22,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Slf4j
@@ -170,9 +171,13 @@ public class StockController {
             @ApiResponse(responseCode = "200", description = "주가 업데이트 성공"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    public ResponseEntity<Void> updatePricesManually() {
-        log.info("POST /api/stocks/update-prices - 수동 주가 업데이트 트리거");
-        stockService.updateDailyStockPrices();
+    public ResponseEntity<Void> updatePricesManually(
+            @Parameter(description = "정산 대상 날짜 (yyyy-MM-dd), 미지정 시 오늘 날짜 사용", example = "2026-08-05", required = false)
+            @RequestParam(required = false)
+            @org.springframework.format.annotation.DateTimeFormat(pattern = "yyyy-MM-dd")
+            LocalDate targetDate) {
+        log.info("POST /api/stocks/update-prices - 수동 주가 업데이트 트리거: targetDate={}", targetDate);
+        stockService.updateDailyStockPrices(targetDate);
         return ResponseEntity.ok().build();
     }
 }
