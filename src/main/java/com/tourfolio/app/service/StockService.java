@@ -495,6 +495,15 @@ public class StockService {
             lastUpdated = stockSpot.getLastUpdated();
         }
 
+        // Spot 엔티티에서 주소 조회
+        String address = null;
+        if (stockSpot.getSpotId() != null) {
+            Spot spot = spotRepository.findById(stockSpot.getSpotId()).orElse(null);
+            if (spot != null) {
+                address = spot.getAddress();
+            }
+        }
+
         return StockResponse.builder()
                 .id(stockSpot.getId())
                 .name(stockSpot.getName())
@@ -505,6 +514,7 @@ public class StockService {
                 .prevPrice(prevPrice)
                 .changeRate(changeRate)
                 .lastUpdated(lastUpdated)
+                .address(address)
                 .build();
     }
 
