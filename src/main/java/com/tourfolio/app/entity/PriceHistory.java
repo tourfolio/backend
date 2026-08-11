@@ -12,7 +12,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "price_history")
+@Table(name = "price_history", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"spot_id", "trade_date"}, name = "uk_spot_trade_date")
+})
 @Data
 @Builder
 @NoArgsConstructor
