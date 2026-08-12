@@ -33,6 +33,20 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 1-1. 로그인이 필요한 API를 토큰 없이 호출한 경우 (SecurityUtil.getCurrentUserId())
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
+        log.warn("🔒 인증되지 않은 요청: {}", ex.getMessage());
+        ErrorResponse response = ErrorResponse.builder()
+                .errorCode("UNAUTHORIZED")
+                .errorMessage("로그인이 필요한 서비스입니다.")
+                .timestamp(LocalDateTime.now())
+                .build();
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    /**
      * 2. [보안 및 디버깅 가드 추가] 브라우저가 자동으로 요청하는 favicon.ico 등 정적 리소스 부재 예외 가로채기
      * 콘솔창에 무의미한 지저분한 StackTrace를 남기지 않도록 가볍게 처리하여 공모전 시연 신뢰성을 확보합니다.
      */
@@ -46,6 +60,8 @@ public class GlobalExceptionHandler {
                 .build();
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
+
+
 
     /**
      * 3. 시스템 런타임 최상위 예외 마스터 처리기
