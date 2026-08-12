@@ -1,5 +1,6 @@
 package com.tourfolio.app.config;
 
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
@@ -15,6 +16,8 @@ import java.util.List;
 
 @Configuration
 public class SwaggerConfig {
+
+    private static final String SECURITY_SCHEME_NAME = "TokenAuth";
 
     @Value("${swagger.server-url:https://tourfolio.kr}")
     private String swaggerServerUrl;
@@ -41,23 +44,19 @@ public class SwaggerConfig {
                 .contact(contact)
                 .description("2026 관광데이터 활용 공모전 - 팀해달별 탐색 및 가상 주식 투자 시스템 코어 인프라 명세서");
 
-        // JWT Security Scheme
-        SecurityScheme securityScheme = new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
-                .scheme("bearer")
-                .bearerFormat("JWT")
-                .description("JWT 토큰을 입력하세요 (Bearer {token})");
-
-        // Security Requirement
-        SecurityRequirement securityRequirement = new SecurityRequirement()
-                .addList("Bearer Auth");
+        // 자물쇠 버튼 클릭 시 나올 인증 방식 정의
+        // Authorization 헤더에 "TOKEN_{uuid}_{userId}" 형식 값을 그대로 입력받음 (Bearer 아님)
+        SecurityScheme tokenScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.APIKEY)
+                .in(SecurityScheme.In.HEADER)
+                .name("Authorization")
+                .description("형식 그대로 입력: TOKEN_{uuid}_{userId} (예: TOKEN_abc123-def456_1)");
 
         return new OpenAPI()
                 .info(info)
                 .servers(List.of(prodServer, localServer))
-                .addSecurityItem(securityRequirement)
-                .components(new io.swagger.v3.oas.models.Components()
-                        .addSecuritySchemes("Bearer Auth", securityScheme));
+                .components(new Components().addSecuritySchemes(SECURITY_SCHEME_NAME, tokenScheme))
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
     }
 
     @Bean
