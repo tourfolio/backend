@@ -28,9 +28,8 @@ public class CollectionService {
     private final SpotRepository spotRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
-    private static final double DISTANCE_THRESHOLD = 200.0; // 200m 반경
 
-    // 수집 메인 화면 조회 (복합 필터링)
+        // 수집 메인 화면 조회 (복합 필터링)
     public CollectionResponse getCollection(Long userId, String region, String theme, Card.CardRarity rarity) {
         log.info("수집 메인 화면 조회 시작: userId={}, region={}, theme={}, rarity={}", userId, region, theme, rarity);
 
@@ -116,11 +115,10 @@ public class CollectionService {
                 .build();
     }
 
-    // GPS 기반 카드 획득 (방문 인증)
+    // 카드 획득 (방문 인증) — 위치 정보는 앱에서만 확인, 서버는 검증 없이 지급
     @Transactional
-    public AcquireCardResponse acquireCard(Long userId, Long cardId, AcquireCardRequest request) {
-        log.info("GPS 기반 카드 획득 시작: userId={}, cardId={}, lat={}, lon={}",
-                userId, cardId, request.getLatitude(), request.getLongitude());
+    public AcquireCardResponse acquireCard(Long userId, Long cardId) {
+        log.info("카드 획득 시작: userId={}, cardId={}", userId, cardId);
 
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CustomException("CARD_NOT_FOUND", "카드를 찾을 수 없습니다."));
@@ -128,16 +126,6 @@ public class CollectionService {
         // 이미 보유 여부 확인
         if (userCardRepository.findByUserIdAndCardId(userId, cardId).isPresent()) {
             throw new CustomException("ALREADY_OWNED", "이미 보유한 카드입니다.");
-        }
-
-        // GPS 거리 확인 (서버에서도 한 번 더 검증 — 앱 조작 방지용 이중 안전장치)
-        double distance = calculateDistance(
-                request.getLatitude(), request.getLongitude(),
-                card.getLatitude(), card.getLongitude()
-        );
-
-        if (distance > DISTANCE_THRESHOLD) {
-            throw new CustomException("LOCATION_TOO_FAR", "관광지에서 너무 멀리 떨어져 있습니다.");
         }
 
         Spot spot = spotRepository.findById(card.getSpotId())
@@ -154,7 +142,7 @@ public class CollectionService {
                 .build();
 
         userCardRepository.save(userCard);
-        log.info("GPS 기반 카드 획득 완료: userId={}, cardId={}", userId, cardId);
+        log.info("카드 획득 완료: userId={}, cardId={}", userId, cardId);
 
         return AcquireCardResponse.builder()
                 .cardId(card.getId())
@@ -164,16 +152,4 @@ public class CollectionService {
                 .build();
     }
 
-    private static final double EARTH_RADIUS_METERS = 6371000.0;
-
-    // 하버사인 공식으로 두 GPS 좌표 간의 거리 계산 (단위: 미터)
-    private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        double dLat = Math.toRadians(lat2 - lat1);
-        double dLon = Math.toRadians(lon2 - lon1);
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return c * EARTH_RADIUS_METERS; // 미터로 변환
-    }
 }

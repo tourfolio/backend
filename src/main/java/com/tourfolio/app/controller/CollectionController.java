@@ -1,6 +1,6 @@
 package com.tourfolio.app.controller;
 
-import com.tourfolio.app.dto.AcquireCardRequest;
+
 import com.tourfolio.app.dto.AcquireCardResponse;
 import com.tourfolio.app.dto.CardLocationResponse;
 import com.tourfolio.app.dto.CardDetailResponse;
@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -98,26 +98,23 @@ public class CollectionController {
 
     @PostMapping("/cards/{cardId}/acquire")
     @Operation(
-            summary = "GPS 기반 카드 획득 (방문 인증)",
-            description = "현재 GPS 좌표를 기반으로 관광지 방문을 인증하고 포토카드를 획득합니다. 관광지 반경 내에 있어야 카드를 획득할 수 있습니다."
+            summary = "카드 획득 (방문 인증)",
+            description = "앱에서 GPS 기반 거리 확인(200m 이내)을 마친 뒤 호출합니다. 위치 정보는 서버로 전송하지 않으며, 호출되면 서버는 별도 검증 없이 카드를 지급합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "카드 획득 성공"),
-            @ApiResponse(responseCode = "400", description = "이미 보유한 카드이거나 위치가 너무 멈"),
+            @ApiResponse(responseCode = "400", description = "이미 보유한 카드입니다"),
             @ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
     public ResponseEntity<AcquireCardResponse> acquireCard(
             @Parameter(description = "카드 ID", example = "1", required = true)
-            @PathVariable Long cardId,
-
-            @Valid @RequestBody AcquireCardRequest request) {
+            @PathVariable Long cardId) {
 
         Long userId = SecurityUtil.getCurrentUserId();
-        log.info("POST /api/v1/collection/cards/{}/acquire - GPS 기반 카드 획득 요청: userId={}, distanceInMeters={}",
-                cardId, userId, request.getDistanceInMeters());
+        log.info("POST /api/v1/collection/cards/{}/acquire - 카드 획득 요청: userId={}", cardId, userId);
 
-        collectionService.acquireCard(userId, cardId, request);
-        return ResponseEntity.ok().build();
+        AcquireCardResponse response = collectionService.acquireCard(userId, cardId);
+        return ResponseEntity.ok(response);
     }
 }
