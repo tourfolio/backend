@@ -36,7 +36,7 @@ tour:
     base-url: https://apis.data.go.kr
 
 kakao:
-  client-id: ${KAKAO_CLIENT_ID:}
+  client-id: ${KAKAO_CLIENT_ID:e44fb0ab71d4de93e8dbda5971f20ac5}
   redirect-uri: https://tourfolio.kr/api/v1/auth/kakao/callback
 
 logging:
