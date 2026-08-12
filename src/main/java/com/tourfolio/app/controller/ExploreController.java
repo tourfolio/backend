@@ -125,21 +125,21 @@ public class ExploreController {
 
             @Parameter(
                     description = "지역 필터 (다중 선택, 예: 서울, 부산, 제주)",
-                    example = "서울,부산",
+
                     required = false
             )
             @RequestParam(required = false) List<String> regions,
 
             @Parameter(
                     description = "테마 필터 (다중 선택, 예: 역사, 문화, 자연)",
-                    example = "역사,문화",
+
                     required = false
             )
             @RequestParam(required = false) List<String> themes,
 
             @Parameter(
                     description = "태그 필터 (다중 선택, 예: 궁궐,야경)",
-                    example = "궁궐,야경",
+
                     required = false
             )
             @RequestParam(required = false) List<String> tags) {
