@@ -18,9 +18,10 @@ public class KakaoUserInfoResponse {
     
     @JsonProperty("connected_at")
     private String connectedAt;
-    
+
     private Map<String, Object> properties;
-    
+
+    @JsonProperty("kakao_account")
     private KakaoAccount kakaoAccount;
     
     @Data
