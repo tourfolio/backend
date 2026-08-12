@@ -250,6 +250,8 @@ public class ExploreService {
 
                             .imageUrl(getImageUrlWithFallback(spot))
 
+                            .address(spot.getAddress() != null ? spot.getAddress() : "")
+
                             .build();
 
                 })

@@ -27,4 +27,7 @@ public class TrendingSpot {
 
     @Schema(description = "썸네일 이미지 URL", example = "https://example.com/images/haeundae.jpg")
     private String imageUrl;
+
+    @Schema(description = "상세 주소", example = "부산광역시 해운대구 해운대해변로 264")
+    private String address;
 }
