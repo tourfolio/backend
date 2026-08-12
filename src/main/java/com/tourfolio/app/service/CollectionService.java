@@ -100,12 +100,27 @@ public class CollectionService {
         log.info("포토카드 상세 조회 완료: cardId={}, isOwned={}", cardId, isOwned);
         return builder.build();
     }
+    // 카드 획득 시도 전, 관광지 좌표만 가볍게 조회 (앱에서 거리 계산용)
+    public CardLocationResponse getCardLocation(Long cardId) {
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> new CustomException("CARD_NOT_FOUND", "카드를 찾을 수 없습니다."));
+
+        Spot spot = spotRepository.findById(card.getSpotId())
+                .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "관광지를 찾을 수 없습니다."));
+
+        return CardLocationResponse.builder()
+                .cardId(card.getId())
+                .spotName(spot.getName())
+                .latitude(card.getLatitude())
+                .longitude(card.getLongitude())
+                .build();
+    }
 
     // GPS 기반 카드 획득 (방문 인증)
     @Transactional
-    public void acquireCard(Long userId, Long cardId, AcquireCardRequest request) {
-        log.info("GPS 기반 카드 획득 시작: userId={}, cardId={}, distanceInMeters={}",
-                userId, cardId, request.getDistanceInMeters());
+    public AcquireCardResponse acquireCard(Long userId, Long cardId, AcquireCardRequest request) {
+        log.info("GPS 기반 카드 획득 시작: userId={}, cardId={}, lat={}, lon={}",
+                userId, cardId, request.getLatitude(), request.getLongitude());
 
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CustomException("CARD_NOT_FOUND", "카드를 찾을 수 없습니다."));
@@ -115,37 +130,50 @@ public class CollectionService {
             throw new CustomException("ALREADY_OWNED", "이미 보유한 카드입니다.");
         }
 
-        // 거리 검증 (프론트엔드에서 계산한 거리값 사용)
-        Double distanceInMeters = request.getDistanceInMeters();
-        if (distanceInMeters == null) {
-            throw new CustomException("INVALID_DISTANCE", "거리값이 제공되지 않았습니다.");
+        // GPS 거리 확인 (서버에서도 한 번 더 검증 — 앱 조작 방지용 이중 안전장치)
+        double distance = calculateDistance(
+                request.getLatitude(), request.getLongitude(),
+                card.getLatitude(), card.getLongitude()
+        );
+
+        if (distance > DISTANCE_THRESHOLD) {
+            throw new CustomException("LOCATION_TOO_FAR", "관광지에서 너무 멀리 떨어져 있습니다.");
         }
 
-        if (distanceInMeters > DISTANCE_THRESHOLD) {
-            throw new CustomException("LOCATION_TOO_FAR",
-                    String.format("아직 관광지와의 거리가 셉니다. 200m 이내로 접근해 주세요. (현재 거리: %.1fm)", distanceInMeters));
-        }
+        Spot spot = spotRepository.findById(card.getSpotId())
+                .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "관광지를 찾을 수 없습니다."));
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
 
         // 카드 획득
         UserCard userCard = UserCard.builder()
                 .userId(userId)
                 .cardId(cardId)
-                .acquiredAt(java.time.LocalDateTime.now())
+                .acquiredAt(now)
                 .acquisitionPath("관광지 방문")
                 .build();
 
         userCardRepository.save(userCard);
-        log.info("GPS 기반 카드 획득 완료: userId={}, cardId={}, distanceInMeters={}", userId, cardId, distanceInMeters);
+        log.info("GPS 기반 카드 획득 완료: userId={}, cardId={}", userId, cardId);
+
+        return AcquireCardResponse.builder()
+                .cardId(card.getId())
+                .cardName(spot.getName())
+                .rarity(card.getRarity())
+                .acquiredAt(now.format(DATE_FORMATTER))
+                .build();
     }
 
-    // 하버사인 공식으로 두 GPS 좌표 간의 거리 계산 (단위: 도)
+    private static final double EARTH_RADIUS_METERS = 6371000.0;
+
+    // 하버사인 공식으로 두 GPS 좌표 간의 거리 계산 (단위: 미터)
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                   Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                   Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                        Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return c; // 라디안 단위 (약 111km = 1도)
+        return c * EARTH_RADIUS_METERS; // 미터로 변환
     }
 }

@@ -1,6 +1,8 @@
 package com.tourfolio.app.controller;
 
 import com.tourfolio.app.dto.AcquireCardRequest;
+import com.tourfolio.app.dto.AcquireCardResponse;
+import com.tourfolio.app.dto.CardLocationResponse;
 import com.tourfolio.app.dto.CardDetailResponse;
 import com.tourfolio.app.dto.CollectionResponse;
 import com.tourfolio.app.entity.Card;
@@ -75,6 +77,25 @@ public class CollectionController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/cards/{cardId}/location")
+    @Operation(
+            summary = "카드(관광지) 좌표 조회",
+            description = "카드 획득 시도 전, 해당 카드가 속한 관광지의 좌표를 반환합니다. 앱에서 사용자 위치와의 거리를 계산하는 데 사용합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "좌표 조회 성공"),
+            @ApiResponse(responseCode = "404", description = "카드 또는 관광지를 찾을 수 없음")
+    })
+    public ResponseEntity<CardLocationResponse> getCardLocation(
+            @Parameter(description = "카드 ID", example = "1", required = true)
+            @PathVariable Long cardId) {
+
+        log.info("GET /api/v1/collection/cards/{}/location - 카드 좌표 조회 요청", cardId);
+
+        CardLocationResponse response = collectionService.getCardLocation(cardId);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/cards/{cardId}/acquire")
     @Operation(
             summary = "GPS 기반 카드 획득 (방문 인증)",
@@ -86,7 +107,7 @@ public class CollectionController {
             @ApiResponse(responseCode = "404", description = "카드를 찾을 수 없음"),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류")
     })
-    public ResponseEntity<Void> acquireCard(
+    public ResponseEntity<AcquireCardResponse> acquireCard(
             @Parameter(description = "카드 ID", example = "1", required = true)
             @PathVariable Long cardId,
 
