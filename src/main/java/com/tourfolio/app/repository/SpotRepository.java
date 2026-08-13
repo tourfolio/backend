@@ -65,4 +65,6 @@ public interface SpotRepository extends JpaRepository<Spot, Long> {
 
     @Query("SELECT s FROM Spot s WHERE s.region = :region AND s.id != :spotId ORDER BY s.tier ASC")
     List<Spot> findNearbySpots(@Param("region") String region, @Param("spotId") Long spotId);
+
+    List<Spot> findByIsWeeklyRecommendedTrueOrderByRecommendOrderAsc();
 }
