@@ -30,6 +30,7 @@ public class MissionService {
     private final TransactionRepository transactionRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final AttendanceService attendanceService;
+    private final NotificationService notificationService;
 
     @Transactional
     public MissionListResponse getMissions(Long userId) {
@@ -53,7 +54,7 @@ public class MissionService {
                 .count();
 
         int consecutiveDays = attendanceService.calculateConsecutiveDays(userId);
-        int cumulativeDays = attendanceService.getTotalAttendanceCount(userId); // 아래 루프에서 attendanceRepository 대신 재사용 위해 여기선 계산 안 함 - 별도 조회 필요시 AttendanceRepository 주입
+        int cumulativeDays = attendanceService.getTotalAttendanceCount(userId);
 
         List<MissionResponse> responses = new ArrayList<>();
         int inProgress = 0, completed = 0;
@@ -93,6 +94,9 @@ public class MissionService {
                         .amount((long) mission.getRewardPoints())
                         .createdAt(LocalDateTime.now())
                         .build());
+
+                notificationService.notify(userId, "MISSION_COMPLETE",
+                        mission.getTitle() + " 미션을 달성하여 " + mission.getRewardPoints() + "P를 획득했습니다!");
 
                 log.info("미션 달성: userId={}, mission={}, +{}P", userId, mission.getTitle(), mission.getRewardPoints());
             }

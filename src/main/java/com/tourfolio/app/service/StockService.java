@@ -51,6 +51,7 @@ public class StockService {
     private final TourIndicatorService tourIndicatorService;
     private final PriceCalculationService priceCalculationService;
     private final KorService2Client korService2Client;
+    private final NotificationService notificationService;
 
     @Transactional(rollbackFor = Exception.class)
     public Transaction executeTrade(TradeRequest request) {
@@ -128,6 +129,10 @@ public class StockService {
                 .executedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        String action = "BUY".equals(type) ? "구입" : "판매";
+        notificationService.notify(user.getId(), "STOCK_TRADE",
+                stockSpot.getName() + " 주식 " + request.getQuantity().stripTrailingZeros().toPlainString() + "주를 " + action + "했습니다.");
 
         log.info("가상 주식 체결 가동 완료 -> 유저: {}, 유형: {}, 종목: {}, 수량: {}, 체결가: {}", user.getNickname(), type, stockSpot.getName(), request.getQuantity(), stockSpot.getCurrentPrice());
         return transactionRepository.save(transaction);
@@ -612,15 +617,15 @@ public class StockService {
                     .filter(stockSpot -> normalizedTags == null || normalizedTags.isEmpty() || (stockSpot.getThemeTag() != null && normalizedTags.stream()
                             .anyMatch(tag -> stockSpot.getThemeTag().toLowerCase().contains(tag.toLowerCase()))))
                     .filter(stockSpot -> stockSpot.getName().toLowerCase().contains(normalizedKeyword.toLowerCase()) ||
-                                   (stockSpot.getRegionName() != null && stockSpot.getRegionName().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
-                                   (stockSpot.getThemeTag() != null && stockSpot.getThemeTag().toLowerCase().contains(normalizedKeyword.toLowerCase())))
+                            (stockSpot.getRegionName() != null && stockSpot.getRegionName().toLowerCase().contains(normalizedKeyword.toLowerCase())) ||
+                            (stockSpot.getThemeTag() != null && stockSpot.getThemeTag().toLowerCase().contains(normalizedKeyword.toLowerCase())))
                     .collect(Collectors.toList());
         } else {
             // 지역 필터만 적용 (한글 지역명, 지역 코드 모두 지원)
             if (normalizedRegion != null) {
                 stockSpots = stockSpotRepository.findAll().stream()
                         .filter(stockSpot -> normalizedRegion.equals(stockSpot.getRegionName()) ||
-                                       normalizedRegion.equals(stockSpot.getAreaCode()))
+                                normalizedRegion.equals(stockSpot.getAreaCode()))
                         .collect(Collectors.toList());
             } else {
                 stockSpots = stockSpotRepository.findAll();

@@ -29,6 +29,7 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
+    private final NotificationService notificationService;
 
     private static final int DAILY_ATTENDANCE_POINTS = 500;
 
@@ -59,6 +60,9 @@ public class AttendanceService {
                 .amount((long) DAILY_ATTENDANCE_POINTS)
                 .createdAt(LocalDateTime.now())
                 .build());
+
+        notificationService.notify(userId, "ATTENDANCE_POINT",
+                "출석 체크 이벤트로 " + DAILY_ATTENDANCE_POINTS + "P 지급되었습니다");
 
         log.info("출석체크 완료: userId={}, +{}P", userId, DAILY_ATTENDANCE_POINTS);
 

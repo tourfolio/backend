@@ -46,9 +46,8 @@ public class UserController {
             @ApiResponse(responseCode = "400", description = "이미 사용 중인 닉네임 또는 유효하지 않은 요청"),
             @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
     })
-    public ResponseEntity<User> updateProfile(
-            @RequestParam Long memberId,
-            @Valid @RequestBody ProfileUpdateRequest request) {
+    public ResponseEntity<User> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
+        Long memberId = com.tourfolio.app.security.SecurityUtil.getCurrentUserId();
         log.info("PUT /api/v1/user/profile - 프로필 수정 요청: memberId={}, newNickname={}",
                 memberId, request.getNickname());
         User user = userService.updateProfile(memberId, request.getNickname());

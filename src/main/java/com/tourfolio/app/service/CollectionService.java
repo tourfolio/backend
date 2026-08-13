@@ -26,10 +26,11 @@ public class CollectionService {
     private final CardRepository cardRepository;
     private final UserCardRepository userCardRepository;
     private final SpotRepository spotRepository;
+    private final NotificationService notificationService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
-        // 수집 메인 화면 조회 (복합 필터링)
+    // 수집 메인 화면 조회 (복합 필터링)
     public CollectionResponse getCollection(Long userId, String region, String theme, Card.CardRarity rarity) {
         log.info("수집 메인 화면 조회 시작: userId={}, region={}, theme={}, rarity={}", userId, region, theme, rarity);
 
@@ -91,7 +92,7 @@ public class CollectionService {
 
         if (isOwned) {
             builder.acquiredAt(userCard.getAcquiredAt().format(DATE_FORMATTER))
-                   .acquisitionPath(userCard.getAcquisitionPath());
+                    .acquisitionPath(userCard.getAcquisitionPath());
         } else {
             builder.message("관광지를 직접 방문하여 카드를 획득하세요!");
         }
@@ -142,6 +143,9 @@ public class CollectionService {
                 .build();
 
         userCardRepository.save(userCard);
+
+        notificationService.notify(userId, "CARD_ACQUIRED", spot.getName() + " 카드를 획득했습니다.");
+
         log.info("카드 획득 완료: userId={}, cardId={}", userId, cardId);
 
         return AcquireCardResponse.builder()
