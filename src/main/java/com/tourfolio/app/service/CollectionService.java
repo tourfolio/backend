@@ -30,14 +30,29 @@ public class CollectionService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
-    // 수집 메인 화면 조회 (복합 필터링)
+    // 수집 메인 화면 조회 (복합 필터링) — 요약은 항상 전체 카드 기준, 목록만 필터링됨
     public CollectionResponse getCollection(Long userId, String region, String theme, Card.CardRarity rarity) {
         log.info("수집 메인 화면 조회 시작: userId={}, region={}, theme={}, rarity={}", userId, region, theme, rarity);
 
-        List<Card> cards = cardRepository.findCardsWithFilters(region, theme, rarity);
         List<Long> ownedCardIds = userCardRepository.findCardIdsByUserId(userId);
 
-        List<CardSummary> cardSummaries = cards.stream()
+        // 1. 전체 수집 요약 (필터와 무관하게 항상 전체 카드 기준으로 계산)
+        List<Card> allCards = cardRepository.findAll();
+        int totalCount = allCards.size();
+        int ownedCount = (int) allCards.stream()
+                .filter(card -> ownedCardIds.contains(card.getId()))
+                .count();
+        double collectionRate = totalCount > 0 ? Math.round((ownedCount * 1000.0 / totalCount)) / 10.0 : 0.0;
+
+        CollectionResponse.CollectionSummary summary = CollectionResponse.CollectionSummary.builder()
+                .collectionRate(collectionRate)
+                .ownedCount(ownedCount)
+                .totalCount(totalCount)
+                .build();
+
+        // 2. 필터링된 카드 목록
+        List<Card> filteredCards = cardRepository.findCardsWithFilters(region, theme, rarity);
+        List<CardSummary> cardSummaries = filteredCards.stream()
                 .map(card -> {
                     Spot spot = spotRepository.findById(card.getSpotId()).orElse(null);
                     return CardSummary.builder()
@@ -52,15 +67,12 @@ public class CollectionService {
                 })
                 .collect(Collectors.toList());
 
-        int totalCount = cards.size();
-        int ownedCount = (int) cardSummaries.stream().filter(CardSummary::getIsOwned).count();
-        double collectionRate = totalCount > 0 ? (ownedCount * 100.0 / totalCount) : 0.0;
+        log.info("수집 메인 화면 조회 완료: totalCount={}, ownedCount={}, collectionRate={}, filteredCount={}",
+                totalCount, ownedCount, collectionRate, cardSummaries.size());
 
-        log.info("수집 메인 화면 조회 완료: totalCount={}, ownedCount={}, collectionRate={}", totalCount, ownedCount, collectionRate);
         return CollectionResponse.builder()
-                .collectionRate(Math.round(collectionRate * 10.0) / 10.0)
-                .ownedCount(ownedCount)
-                .totalCount(totalCount)
+                .summary(summary)
+                .filteredCount(cardSummaries.size())
                 .cards(cardSummaries)
                 .build();
     }
