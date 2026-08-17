@@ -31,7 +31,7 @@ public class CollectionController {
     @GetMapping
     @Operation(
             summary = "수집 메인 화면 조회",
-            description = "수집 탭 메인 화면의 카드 목록을 조회합니다. 지역, 테마, 희귀도 필터링을 지원하며, 필터 적용 시 해당 범위 내 수집률을 계산합니다."
+            description = "수집 탭 메인 화면의 카드 목록을 조회합니다. 지역, 테마, 희귀도, 보유여부 필터링을 지원하며, 전체 수집 요약은 필터와 무관하게 항상 전체 카드 기준으로 계산됩니다."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "수집 메인 화면 조회 성공"),
@@ -46,13 +46,16 @@ public class CollectionController {
             @RequestParam(required = false) String theme,
 
             @Parameter(description = "희귀도 필터 (LEGEND, EPIC, RARE, NORMAL)", example = "EPIC", required = false)
-            @RequestParam(required = false) Card.CardRarity rarity) {
+            @RequestParam(required = false) Card.CardRarity rarity,
+
+            @Parameter(description = "보유 여부 필터 (true=보유 카드만, false=미보유 카드만, 생략 시 전체)", example = "true", required = false)
+            @RequestParam(required = false) Boolean owned) {
 
         Long userId = SecurityUtil.getCurrentUserId();
-        log.info("GET /api/v1/collection - 수집 메인 화면 조회 요청: userId={}, region={}, theme={}, rarity={}", 
-                userId, region, theme, rarity);
+        log.info("GET /api/v1/collection - 수집 메인 화면 조회 요청: userId={}, region={}, theme={}, rarity={}, owned={}",
+                userId, region, theme, rarity, owned);
 
-        CollectionResponse response = collectionService.getCollection(userId, region, theme, rarity);
+        CollectionResponse response = collectionService.getCollection(userId, region, theme, rarity, owned);
         return ResponseEntity.ok(response);
     }
 

@@ -31,8 +31,8 @@ public class CollectionService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     // 수집 메인 화면 조회 (복합 필터링) — 요약은 항상 전체 카드 기준, 목록만 필터링됨
-    public CollectionResponse getCollection(Long userId, String region, String theme, Card.CardRarity rarity) {
-        log.info("수집 메인 화면 조회 시작: userId={}, region={}, theme={}, rarity={}", userId, region, theme, rarity);
+    public CollectionResponse getCollection(Long userId, String region, String theme, Card.CardRarity rarity, Boolean owned) {
+        log.info("수집 메인 화면 조회 시작: userId={}, region={}, theme={}, rarity={}, owned={}", userId, region, theme, rarity, owned);
 
         List<Long> ownedCardIds = userCardRepository.findCardIdsByUserId(userId);
 
@@ -50,8 +50,16 @@ public class CollectionService {
                 .totalCount(totalCount)
                 .build();
 
-        // 2. 필터링된 카드 목록
+        // 2. 필터링된 카드 목록 (지역/테마/희귀도)
         List<Card> filteredCards = cardRepository.findCardsWithFilters(region, theme, rarity);
+
+        // 3. 보유여부 필터 추가 적용
+        if (owned != null) {
+            filteredCards = filteredCards.stream()
+                    .filter(card -> ownedCardIds.contains(card.getId()) == owned)
+                    .collect(Collectors.toList());
+        }
+
         List<CardSummary> cardSummaries = filteredCards.stream()
                 .map(card -> {
                     Spot spot = spotRepository.findById(card.getSpotId()).orElse(null);
