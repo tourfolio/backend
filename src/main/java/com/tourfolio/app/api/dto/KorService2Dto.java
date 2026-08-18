@@ -44,4 +44,19 @@ public class KorService2Dto {
 
     @JsonProperty("overview")
     private String overview;
+
+    @JsonProperty("tel")
+    private String tel;
+
+    @JsonProperty("homepage")
+    private String homepage;
+
+    @JsonProperty("infocenter")
+    private String infoCenter;
+
+    @JsonProperty("restdate")
+    private String restDate;
+
+    @JsonProperty("usetime")
+    private String useTime;
 }

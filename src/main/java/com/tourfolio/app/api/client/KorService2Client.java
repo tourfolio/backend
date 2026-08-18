@@ -69,4 +69,41 @@ public class KorService2Client {
         }
         return null;
     }
+
+    /**
+     * 관광지 소개정보 조회 (운영시간, 휴무일, 문의처)
+     * @param contentId 관광지 ID
+     * @param contentTypeId 컨텐츠 타입 ID (관광지=12)
+     * @return 소개 정보
+     */
+    public KorService2Dto fetchDetailIntro(String contentId, String contentTypeId) {
+        try {
+            String url = UriComponentsBuilder.fromHttpUrl(baseUrl + "/B551011/KorService2/detailIntro2")
+                    .queryParam("serviceKey", serviceKey)
+                    .queryParam("MobileOS", "ETC")
+                    .queryParam("MobileApp", "tourfolio")
+                    .queryParam("contentId", contentId)
+                    .queryParam("contentTypeId", contentTypeId)
+                    .queryParam("_type", "json")
+                    .build(true)
+                    .toUriString();
+
+            PublicApiResponse<KorService2Dto> response = webClient.get()
+                    .uri(java.net.URI.create(url))
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<PublicApiResponse<KorService2Dto>>() {})
+                    .block();
+
+            if (response != null && response.isSuccess()) {
+                List<KorService2Dto> items = response.getItems();
+                if (items != null && !items.isEmpty()) {
+                    return items.get(0);
+                }
+            }
+            log.warn("KorService2 소개정보 응답 실패: contentId={} resultCode={}", contentId, PublicApiResponse.resultCodeOf(response));
+        } catch (Exception e) {
+            log.warn("KorService2 소개정보 호출 실패: contentId={} error={}", contentId, e.toString());
+        }
+        return null;
+    }
 }

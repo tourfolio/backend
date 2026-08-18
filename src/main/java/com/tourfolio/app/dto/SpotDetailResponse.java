@@ -24,6 +24,12 @@ public class SpotDetailResponse {
     @Schema(description = "대표 이미지 URL", example = "https://tong.visitkorea.or.kr/cms/resource/98/3487598_image2_1.jpg")
     private String imageUrl;
 
+    @Schema(description = "지도 X좌표(경도)", example = "126.9769")
+    private String mapX;
+
+    @Schema(description = "지도 Y좌표(위도)", example = "37.5796")
+    private String mapY;
+
     @Schema(description = "위치/주소", example = "서울 종로구 사직로 161")
     private String address;
 

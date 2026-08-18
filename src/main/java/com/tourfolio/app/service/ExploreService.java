@@ -21,9 +21,10 @@ import java.util.stream.Collectors;
 public class ExploreService {
 
     private final SpotRepository spotRepository;
+    private final com.tourfolio.app.api.client.KorService2Client korService2Client;
     private static final String DEFAULT_IMAGE_URL = "https://via.placeholder.com/800x600?text=No+Image";
 
-    // 관광지별 상세 정보 (운영시간/휴무일/입장료/웹사이트/전화번호) — 실제 데이터 기준, 10개 관광지 하드코딩
+    // 관광지별 상세 정보 (운영시간/휴무일/입장료/웹사이트/전화번호) — 실제 데이터 기준, 10개 관광지 하드코딩 (API 실패 시 폴백용)
     private static final Map<String, String[]> SPOT_DETAIL_INFO = Map.ofEntries(
             Map.entry("경복궁", new String[]{
                     "09:00~18:00 (계절별 변동, 여름 18:30까지)", "매주 화요일", "성인 3,000원",
@@ -273,8 +274,18 @@ public class ExploreService {
         // 매력 포인트 (테마별 하드코딩 — Iconify CDN으로 실제 로딩되는 아이콘 사용)
         List<AttractionPoint> attractionPoints = getAttractionPointsByTheme(spot.getTheme());
 
-        // 관광지별 실제 운영정보 (하드코딩 — 10개 관광지 기준 실제 데이터)
-        String[] info = getSpotDetailInfo(spot.getName());
+        // TourAPI(KorService2) 공통정보 라이브 조회 시도 (이미지, 좌표) — 실패 시 DB 값으로 폴백. 한 번만 호출해서 재사용.
+        com.tourfolio.app.api.dto.KorService2Dto liveCommon = fetchLiveCommonInfo(spot);
+
+        String imageUrl = (liveCommon != null && liveCommon.getFirstImage() != null && !liveCommon.getFirstImage().isBlank())
+                ? liveCommon.getFirstImage() : getImageUrlWithFallback(spot);
+        String mapX = (liveCommon != null && liveCommon.getMapX() != null && !liveCommon.getMapX().isBlank())
+                ? liveCommon.getMapX() : spot.getMapX();
+        String mapY = (liveCommon != null && liveCommon.getMapY() != null && !liveCommon.getMapY().isBlank())
+                ? liveCommon.getMapY() : spot.getMapY();
+
+        // 운영정보(시간/휴무일/전화/웹사이트) 라이브 조회 시도 — 실패/누락 시 하드코딩 값으로 폴백. 입장료는 항상 하드코딩 값 사용.
+        String[] info = getSpotDetailInfoWithApiFallback(spot, liveCommon);
 
         log.info("관광지 상세 정보 조회 완료: spotId={}", spotId);
         // Null-safe fallback 처리
@@ -285,7 +296,9 @@ public class ExploreService {
         return SpotDetailResponse.builder()
                 .spotId(spot.getId() != null ? spot.getId() : 0L)
                 .name(spot.getName() != null ? spot.getName() : "")
-                .imageUrl(getImageUrlWithFallback(spot))
+                .imageUrl(imageUrl)
+                .mapX(mapX)
+                .mapY(mapY)
                 .address(address)
                 .tags(tags != null ? tags : List.of())
                 .description(description)
@@ -426,6 +439,66 @@ public class ExploreService {
                         .iconUrl("https://api.iconify.design/mdi/camera.svg")
                         .build()
         );
+    }
+
+    // TourAPI 공통정보(detailCommon2) 라이브 조회 — 실패 시 null 반환 (호출부에서 DB 값으로 폴백)
+    private com.tourfolio.app.api.dto.KorService2Dto fetchLiveCommonInfo(Spot spot) {
+        if (spot.getContentId() == null || spot.getContentId().isBlank()) {
+            return null;
+        }
+        try {
+            return korService2Client.fetchDetailCommon(spot.getContentId());
+        } catch (Exception e) {
+            log.warn("TourAPI 공통정보 조회 실패, DB 값으로 대체: spotId={}, error={}", spot.getId(), e.getMessage());
+            return null;
+        }
+    }
+
+    // 관광지 운영정보를 API(detailIntro2)에서 라이브로 시도하고, 실패/누락 시 하드코딩 값으로 대체
+    private String[] getSpotDetailInfoWithApiFallback(Spot spot, com.tourfolio.app.api.dto.KorService2Dto liveCommon) {
+        String[] fallback = getSpotDetailInfo(spot.getName());
+
+        if (spot.getContentId() == null || spot.getContentId().isBlank()) {
+            return fallback;
+        }
+
+        try {
+            String contentTypeId = (liveCommon != null && liveCommon.getContentTypeId() != null && !liveCommon.getContentTypeId().isBlank())
+                    ? liveCommon.getContentTypeId() : "12"; // 기본값: 관광지
+
+            com.tourfolio.app.api.dto.KorService2Dto intro = korService2Client.fetchDetailIntro(spot.getContentId(), contentTypeId);
+
+            String hours = cleanApiText(intro != null ? intro.getUseTime() : null);
+            String closed = cleanApiText(intro != null ? intro.getRestDate() : null);
+            String phone = cleanApiText(liveCommon != null && liveCommon.getTel() != null && !liveCommon.getTel().isBlank()
+                    ? liveCommon.getTel() : (intro != null ? intro.getInfoCenter() : null));
+            String website = (liveCommon != null && liveCommon.getHomepage() != null && !liveCommon.getHomepage().isBlank())
+                    ? cleanApiText(liveCommon.getHomepage()) : null;
+
+            // 핵심 필드가 전부 비어있으면 API 데이터를 신뢰할 수 없다고 보고 폴백
+            if ((hours == null || hours.isBlank()) && (closed == null || closed.isBlank())
+                    && (phone == null || phone.isBlank()) && (website == null || website.isBlank())) {
+                return fallback;
+            }
+
+            return new String[]{
+                    (hours != null && !hours.isBlank()) ? hours : fallback[0],
+                    (closed != null && !closed.isBlank()) ? closed : fallback[1],
+                    fallback[2], // 입장료는 컨텐츠 타입별 필드 신뢰도가 낮아 항상 하드코딩 값 사용
+                    (website != null && !website.isBlank()) ? website : fallback[3],
+                    (phone != null && !phone.isBlank()) ? phone : fallback[4]
+            };
+        } catch (Exception e) {
+            log.warn("관광지 상세정보 API 조회 실패, 하드코딩 값으로 대체: spotId={}, error={}", spot.getId(), e.getMessage());
+            return fallback;
+        }
+    }
+
+    // API 응답의 <br> 태그, 중복 공백 등을 정리
+    private String cleanApiText(String raw) {
+        if (raw == null) return null;
+        String cleaned = raw.replaceAll("<br\\s*/?>", " ").replaceAll("<[^>]*>", "").replaceAll("\\s+", " ").trim();
+        return cleaned.isEmpty() ? null : cleaned;
     }
 
     // 신규: 지금 뜨는 여행지 조회 (조회수 기준)
