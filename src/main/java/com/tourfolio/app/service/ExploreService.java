@@ -217,19 +217,10 @@ public class ExploreService {
                         .build())
                 .collect(Collectors.toList());
 
-        // 매력 포인트 (하드코딩된 예시 - 실제로는 별도 테이블 필요)
-        List<AttractionPoint> attractionPoints = Arrays.asList(
-                AttractionPoint.builder()
-                        .title("야경 감상")
-                        .iconType("moon")
-                        .iconUrl("https://example.com/icons/moon.png")
-                        .build(),
-                AttractionPoint.builder()
-                        .title("역사 체험")
-                        .iconType("history")
-                        .iconUrl("https://example.com/icons/history.png")
-                        .build()
-        );
+        // 매력 포인트 (테마별 하드코딩 — Iconify CDN으로 실제 로딩되는 아이콘 사용)
+        // ※ 기획/피그마에 명시된 요구사항 아님. 원래 있던 하드코딩(example.com, 깨진 URL)을
+        //    수정하는 김에 최소한 아이콘이 뜨도록 임시 처리한 것 — 실제 필요 여부는 확인 필요
+        List<AttractionPoint> attractionPoints = getAttractionPointsByTheme(spot.getTheme());
 
         log.info("관광지 상세 정보 조회 완료: spotId={}", spotId);
         // Null-safe fallback 처리
@@ -307,6 +298,80 @@ public class ExploreService {
             }
         }
         return "특별한 여행을 위한 공간";
+    }
+
+    // 헬퍼 메서드: 테마별 매력 포인트 목록 생성 (하드코딩, Iconify CDN 아이콘 사용)
+    private List<AttractionPoint> getAttractionPointsByTheme(String theme) {
+        if (theme != null) {
+            switch (theme) {
+                case "역사":
+                    return Arrays.asList(
+                            AttractionPoint.builder()
+                                    .title("역사 체험")
+                                    .iconType("history")
+                                    .iconUrl("https://api.iconify.design/mdi/bank.svg")
+                                    .build(),
+                            AttractionPoint.builder()
+                                    .title("야경 감상")
+                                    .iconType("moon")
+                                    .iconUrl("https://api.iconify.design/mdi/weather-night.svg")
+                                    .build()
+                    );
+                case "자연":
+                    return Arrays.asList(
+                            AttractionPoint.builder()
+                                    .title("자연 경관")
+                                    .iconType("nature")
+                                    .iconUrl("https://api.iconify.design/mdi/tree.svg")
+                                    .build(),
+                            AttractionPoint.builder()
+                                    .title("트레킹")
+                                    .iconType("hiking")
+                                    .iconUrl("https://api.iconify.design/mdi/hiking.svg")
+                                    .build()
+                    );
+                case "레저":
+                    return Arrays.asList(
+                            AttractionPoint.builder()
+                                    .title("액티비티")
+                                    .iconType("activity")
+                                    .iconUrl("https://api.iconify.design/mdi/run-fast.svg")
+                                    .build(),
+                            AttractionPoint.builder()
+                                    .title("포토스팟")
+                                    .iconType("camera")
+                                    .iconUrl("https://api.iconify.design/mdi/camera.svg")
+                                    .build()
+                    );
+                case "문화":
+                    return Arrays.asList(
+                            AttractionPoint.builder()
+                                    .title("문화 체험")
+                                    .iconType("culture")
+                                    .iconUrl("https://api.iconify.design/mdi/palette.svg")
+                                    .build(),
+                            AttractionPoint.builder()
+                                    .title("포토스팟")
+                                    .iconType("camera")
+                                    .iconUrl("https://api.iconify.design/mdi/camera.svg")
+                                    .build()
+                    );
+                default:
+                    break;
+            }
+        }
+        return Arrays.asList(
+                AttractionPoint.builder()
+                        .title("야경 감상")
+                        .iconType("moon")
+                        .iconUrl("https://api.iconify.design/mdi/weather-night.svg")
+                        .build(),
+                AttractionPoint.builder()
+                        .title("포토스팟")
+                        .iconType("camera")
+                        .iconUrl("https://api.iconify.design/mdi/camera.svg")
+                        .build()
+        );
     }
 
     // 신규: 지금 뜨는 여행지 조회 (조회수 기준)
