@@ -21,6 +21,9 @@ public class SpotDetailResponse {
     @Schema(description = "관광지명", example = "경복궁")
     private String name;
 
+    @Schema(description = "대표 이미지 URL", example = "https://tong.visitkorea.or.kr/cms/resource/98/3487598_image2_1.jpg")
+    private String imageUrl;
+
     @Schema(description = "위치/주소", example = "서울 종로구 사직로 161")
     private String address;
 
@@ -50,4 +53,6 @@ public class SpotDetailResponse {
 
     @Schema(description = "주변 관광지 목록")
     private List<NearbySpot> nearbySpots;
+
+
 }

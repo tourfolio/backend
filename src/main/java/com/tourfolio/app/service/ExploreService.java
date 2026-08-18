@@ -244,6 +244,8 @@ public class ExploreService {
 
                             .name(spot.getName())
 
+
+
                             .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
 
                             .popularityRank(index)
