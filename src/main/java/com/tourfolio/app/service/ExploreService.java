@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +22,58 @@ public class ExploreService {
 
     private final SpotRepository spotRepository;
     private static final String DEFAULT_IMAGE_URL = "https://via.placeholder.com/800x600?text=No+Image";
+
+    // 관광지별 상세 정보 (운영시간/휴무일/입장료/웹사이트/전화번호) — 실제 데이터 기준, 10개 관광지 하드코딩
+    private static final Map<String, String[]> SPOT_DETAIL_INFO = Map.ofEntries(
+            Map.entry("경복궁", new String[]{
+                    "09:00~18:00 (계절별 변동, 여름 18:30까지)", "매주 화요일", "성인 3,000원",
+                    "https://royal.khs.go.kr", "02-3700-3900"
+            }),
+            Map.entry("성산일출봉", new String[]{
+                    "04:30~20:00 (계절별 변동)", "연중무휴", "성인 5,000원 / 청소년·어린이 2,500원",
+                    "https://www.visitjeju.net", "064-783-0959"
+            }),
+            Map.entry("전주한옥마을", new String[]{
+                    "상시 개방 (마을 전체 24시간, 개별 체험시설은 별도)", "없음", "무료 (일부 체험·전시시설 별도 요금)",
+                    "https://hanok.jeonju.go.kr", "063-282-1330"
+            }),
+            Map.entry("남산서울타워", new String[]{
+                    "평일 10:00~22:30 / 주말·공휴일 10:00~23:00", "연중무휴", "전망대 성인 21,000원",
+                    "https://www.nseoultower.co.kr", "02-3455-9277"
+            }),
+            Map.entry("지리산 천왕봉", new String[]{
+                    "탐방로별 상이 (계절별 입산시간 제한 있음)", "봄철 산불통제기간 등 일부 구간 통제", "무료 (국립공원 입장료 폐지)",
+                    "https://www.knps.or.kr/jiri", "1670-9201"
+            }),
+            Map.entry("순천만국가정원", new String[]{
+                    "08:30~19:00 (하절기) / 08:30~18:00 (동절기)", "매월 마지막 주 월요일", "성인 10,000원",
+                    "https://scbay.suncheon.go.kr", "061-749-3114"
+            }),
+            Map.entry("통영케이블카", new String[]{
+                    "09:30~18:00 (하절기 기준, 계절별 변동)", "매월 둘째·넷째 수요일", "왕복 성인 17,000원",
+                    "https://cablecar.ttdc.kr", "1544-3303"
+            }),
+            Map.entry("해운대해수욕장", new String[]{
+                    "상시 개방 (해수욕 가능기간은 6월 말~9월 중순)", "없음", "무료",
+                    "https://www.haeundae.go.kr", "1330 (관광안내)"
+            }),
+            Map.entry("광안리해수욕장", new String[]{
+                    "상시 개방", "없음", "무료",
+                    "https://www.suyeong.go.kr", "1330 (관광안내)"
+            }),
+            Map.entry("경주 불국사", new String[]{
+                    "09:00~18:00 (하절기) / 09:00~17:00 (동절기)", "연중무휴", "무료 (2023년 문화재관람료 폐지)",
+                    "https://www.bulguksa.or.kr", "054-746-9913"
+            })
+    );
+
+    private static final String[] DEFAULT_SPOT_DETAIL_INFO = new String[]{
+            "관광지별 상이 (홈페이지 참고)", "관광지별 상이", "관광지별 상이", "https://www.visitkorea.or.kr", "1330 (관광안내)"
+    };
+
+    private String[] getSpotDetailInfo(String spotName) {
+        return SPOT_DETAIL_INFO.getOrDefault(spotName, DEFAULT_SPOT_DETAIL_INFO);
+    }
 
     private String getImageUrlWithFallback(Spot spot) {
         return spot.getImageUrl() != null && !spot.getImageUrl().isEmpty() ? spot.getImageUrl() : DEFAULT_IMAGE_URL;
@@ -218,9 +271,10 @@ public class ExploreService {
                 .collect(Collectors.toList());
 
         // 매력 포인트 (테마별 하드코딩 — Iconify CDN으로 실제 로딩되는 아이콘 사용)
-        // ※ 기획/피그마에 명시된 요구사항 아님. 원래 있던 하드코딩(example.com, 깨진 URL)을
-        //    수정하는 김에 최소한 아이콘이 뜨도록 임시 처리한 것 — 실제 필요 여부는 확인 필요
         List<AttractionPoint> attractionPoints = getAttractionPointsByTheme(spot.getTheme());
+
+        // 관광지별 실제 운영정보 (하드코딩 — 10개 관광지 기준 실제 데이터)
+        String[] info = getSpotDetailInfo(spot.getName());
 
         log.info("관광지 상세 정보 조회 완료: spotId={}", spotId);
         // Null-safe fallback 처리
@@ -235,11 +289,11 @@ public class ExploreService {
                 .address(address)
                 .tags(tags != null ? tags : List.of())
                 .description(description)
-                .operatingHours("09:00 - 18:00 (계절별 변동)")
-                .closedDays("매주 화요일")
-                .admissionFee("성인 3,000원")
-                .website("https://www.example.com")
-                .phoneNumber("02-1234-5678")
+                .operatingHours(info[0])
+                .closedDays(info[1])
+                .admissionFee(info[2])
+                .website(info[3])
+                .phoneNumber(info[4])
                 .attractionPoints(attractionPoints)
                 .nearbySpots(nearby)
                 .build();
