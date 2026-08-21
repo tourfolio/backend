@@ -46,6 +46,19 @@ public class TourIndicatorService {
     /** D/R 월간 지표는 매월 16일 이후에 전달 데이터가 공개된다 */
     private static final int MONTHLY_PUBLISH_DAY = 16;
 
+    /**
+     * TatsCnctrRateService에 등록된 정확한 관광지 명칭이 우리 DB의 name과 다른 경우 보정.
+     * (DB의 name은 화면 표시용이라 그대로 두고, API 호출 시에만 이 맵으로 치환한다)
+     */
+    private static final Map<String, String> TATS_NAME_OVERRIDE = Map.of(
+            "전주한옥마을", "전북 전주 한옥마을 [슬로시티]",
+            "순천만국가정원", "순천만 국가정원"
+    );
+
+    private String resolveTatsName(String dbName) {
+        return TATS_NAME_OVERRIDE.getOrDefault(dbName, dbName);
+    }
+
     private final TatsCnctrRateClient tatsCnctrRateClient;
     private final AreaTarDemDsClient areaTarDemDsClient;
     private final AreaTarResDemClient areaTarResDemClient;
@@ -79,7 +92,7 @@ public class TourIndicatorService {
     public Double collectP(Spot spot, Double previousP) {
         try {
             List<TatsCnctrRateDto> predictions = tatsCnctrRateClient.fetchPredictions(
-                    spot.getAreaCode(), spot.getSignguCd(), spot.getName());
+                    spot.getAreaCode(), spot.getSignguCd(), resolveTatsName(spot.getName()));
 
             if (predictions != null && !predictions.isEmpty()) {
                 LocalDate today = LocalDate.now();
