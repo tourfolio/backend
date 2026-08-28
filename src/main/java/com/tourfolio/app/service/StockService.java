@@ -509,6 +509,20 @@ public class StockService {
             }
         }
 
+        // 오늘 거래량 (앱에 가입된 전체 유저의 매수+매도 합산, 스팟 단위)
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        LocalDateTime todayEnd = LocalDate.now().atTime(23, 59, 59);
+        BigDecimal todayTradeVolume = transactionRepository.sumQuantityBySpotIdAndCreatedAtBetween(
+                stockSpot.getId(), todayStart, todayEnd);
+        if (todayTradeVolume == null) {
+            todayTradeVolume = BigDecimal.ZERO;
+        }
+
+        // 관광 데이터 지표 (점 표시용) - 하드코딩 계산 없이 이미 저장된 값 그대로 노출
+        BigDecimal visitorForecast = latestHistory != null ? latestHistory.getPScore() : null;
+        BigDecimal demandIntensity = latestHistory != null ? latestHistory.getDScore() : null;
+        BigDecimal resourceDemand = latestHistory != null ? latestHistory.getRScore() : null;
+
         return StockResponse.builder()
                 .id(stockSpot.getId())
                 .name(stockSpot.getName())
@@ -520,6 +534,10 @@ public class StockService {
                 .changeRate(changeRate)
                 .lastUpdated(lastUpdated)
                 .address(address)
+                .todayTradeVolume(todayTradeVolume)
+                .visitorForecast(visitorForecast)
+                .demandIntensity(demandIntensity)
+                .resourceDemand(resourceDemand)
                 .build();
     }
 

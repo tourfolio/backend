@@ -25,11 +25,13 @@ public class PriceCalculationService {
     private final PriceHistoryRepository priceHistoryRepository;
     private final TransactionRepository transactionRepository;
 
+    private static final BigDecimal MIN_PRICE_STEP = BigDecimal.valueOf(10);
+
     public record YesterdayContext(Double yesterdayTS, BigDecimal yesterdayPrice, Double yesterdayP, Double yesterdayD,
                                    Double yesterdayR) {
-            public YesterdayContext(Double yesterdayTS, BigDecimal yesterdayPrice) {
-                this(yesterdayTS, yesterdayPrice, null, null, null);
-            }
+        public YesterdayContext(Double yesterdayTS, BigDecimal yesterdayPrice) {
+            this(yesterdayTS, yesterdayPrice, null, null, null);
+        }
 
     }
 
@@ -94,8 +96,17 @@ public class PriceCalculationService {
 
             BigDecimal newPrice = ctx.yesterdayPrice().multiply(BigDecimal.valueOf(1.0 + finalChange));
             // 10원 단위 반올림 처리
-            return newPrice.divide(BigDecimal.valueOf(10), 0, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(10));
+            newPrice = newPrice.divide(MIN_PRICE_STEP, 0, RoundingMode.HALF_UP)
+                    .multiply(MIN_PRICE_STEP);
+
+            // 최소 변동폭 보장: 계산상 변동(finalChange)이 있는데도 반올림 때문에
+            // 어제 가격과 완전히 같아져버리면, 방향에 맞춰 ±10원을 강제로 적용한다.
+            if (finalChange != 0.0 && newPrice.compareTo(ctx.yesterdayPrice()) == 0) {
+                BigDecimal minStep = finalChange > 0 ? MIN_PRICE_STEP : MIN_PRICE_STEP.negate();
+                newPrice = ctx.yesterdayPrice().add(minStep);
+            }
+
+            return newPrice;
         } catch (Exception e) {
             log.error("가격 계산 오류: spotId={}, error={}", spot.getId(), e.getMessage());
             return spot.getCurrentPrice();
@@ -110,7 +121,7 @@ public class PriceCalculationService {
         try {
             LocalDate calculationDate = targetDate != null ? targetDate : LocalDate.now();
             LocalDate previousDate = calculationDate.minusDays(1);
-            
+
             LocalDateTime dayStart = previousDate.atStartOfDay();
             LocalDateTime dayEnd = previousDate.atTime(23, 59, 59);
 

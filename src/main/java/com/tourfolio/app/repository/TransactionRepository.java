@@ -25,4 +25,13 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     List<Transaction> findBySpotIdOrderByCreatedAtDesc(Long spotId);
     List<Transaction> findByMemberIdOrderByExecutedAtDesc(Long memberId);
+
+    @Query("SELECT COALESCE(SUM(t.quantity), 0) FROM Transaction t " +
+            "WHERE t.spotId = :spotId AND t.createdAt BETWEEN :startTime AND :endTime")
+    BigDecimal sumQuantityBySpotIdAndCreatedAtBetween(@Param("spotId") Long spotId,
+                                                      @Param("startTime") LocalDateTime startTime,
+                                                      @Param("endTime") LocalDateTime endTime);
+
+
+
 }
