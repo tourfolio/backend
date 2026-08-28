@@ -20,6 +20,8 @@ public class PortfolioSummaryResponse {
     private BigDecimal totalProfitLoss;   // 총 평가손익
     private BigDecimal profitRate;        // 수익률 (%)
     private BigDecimal cashBalance;       // 보유 현금
+    private BigDecimal monthlyProfit;      // 이번달 실현손익 (원)
+    private BigDecimal monthlyProfitRate;  // 이번달 실현손익률 (%)
     private List<AssetHistoryItem> assetHistory; // 자산 추이 데이터
 
     @Data

@@ -32,6 +32,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                       @Param("startTime") LocalDateTime startTime,
                                                       @Param("endTime") LocalDateTime endTime);
 
+    @Query("SELECT COALESCE(SUM(t.realizedProfit), 0) FROM Transaction t " +
+            "WHERE t.memberId = :memberId AND t.type = 'SELL' AND t.createdAt BETWEEN :start AND :end")
+    BigDecimal sumRealizedProfitByMemberIdAndCreatedAtBetween(@Param("memberId") Long memberId,
+                                                              @Param("start") LocalDateTime start,
+                                                              @Param("end") LocalDateTime end);
 
-
+    @Query("SELECT COALESCE(SUM(t.totalAmount), 0) FROM Transaction t " +
+            "WHERE t.memberId = :memberId AND t.type = 'SELL' AND t.createdAt BETWEEN :start AND :end")
+    BigDecimal sumSellAmountByMemberIdAndCreatedAtBetween(@Param("memberId") Long memberId,
+                                                          @Param("start") LocalDateTime start,
+                                                          @Param("end") LocalDateTime end);
 }

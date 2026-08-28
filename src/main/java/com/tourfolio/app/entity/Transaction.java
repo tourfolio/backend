@@ -44,4 +44,8 @@ public class Transaction {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(precision = 19, scale = 2)
+    private BigDecimal realizedProfit; // 매도 시에만 값 존재. 매수는 null.
+
 }
