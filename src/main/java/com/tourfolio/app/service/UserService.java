@@ -75,8 +75,6 @@ public class UserService {
             throw new InvalidCredentialsException("비활성화된 계정입니다.");
         }
 
-        checkAndAwardAttendance(user);
-
         return createAuthResponse(user);
     }
 
