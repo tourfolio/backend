@@ -25,6 +25,7 @@ public class HomeResponse {
         private BigDecimal totalAsset;
         private BigDecimal todayProfit;
         private BigDecimal todayProfitRate;
+        private BigDecimal totalProfitRate;
         private Integer stockCount;
     }
 
@@ -46,7 +47,7 @@ public class HomeResponse {
         private Long spotId;
         private String name;
         private String imageUrl;
-        private String region;
+        private String description;
         private List<String> tags;
     }
 }

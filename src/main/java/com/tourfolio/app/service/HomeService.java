@@ -36,6 +36,7 @@ public class HomeService {
                 .totalAsset(summary.getTotalAsset())
                 .todayProfit(summary.getTotalProfitLoss())
                 .todayProfitRate(summary.getProfitRate())
+                .totalProfitRate(summary.getProfitRate())
                 .stockCount(stockCount)
                 .build();
 
@@ -56,11 +57,10 @@ public class HomeService {
                         .spotId(spot.getId())
                         .name(spot.getName())
                         .imageUrl(spot.getImageUrl() != null && !spot.getImageUrl().isEmpty() ? spot.getImageUrl() : DEFAULT_IMAGE_URL)
-                        .region(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
+                        .description(spot.getDescription())
                         .tags(parseTags(spot.getThemeTag()))
                         .build())
                 .collect(Collectors.toList());
-
         log.info("홈 화면 조회 완료: userId={}, stockCount={}, cardCount={}/{}, recommended={}건",
                 userId, stockCount, ownedCount, totalCount, recommended.size());
 
