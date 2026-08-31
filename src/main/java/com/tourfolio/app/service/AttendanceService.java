@@ -64,12 +64,20 @@ public class AttendanceService {
         notificationService.notify(userId, "ATTENDANCE_POINT",
                 "출석 체크 이벤트로 " + DAILY_ATTENDANCE_POINTS + "P 지급되었습니다");
 
-        log.info("출석체크 완료: userId={}, +{}P", userId, DAILY_ATTENDANCE_POINTS);
+        int consecutiveDays = calculateConsecutiveDays(userId);
+
+        // 7일 단위 연속출석 마일스톤 알림 (7, 14, 21, 28일 ...)
+        if (consecutiveDays > 0 && consecutiveDays % 7 == 0) {
+            notificationService.notify(userId, "ATTENDANCE_STREAK",
+                    consecutiveDays + "일 연속 출석체크했습니다");
+        }
+
+        log.info("출석체크 완료: userId={}, +{}P, 연속={}일", userId, DAILY_ATTENDANCE_POINTS, consecutiveDays);
 
         return AttendanceCheckResponse.builder()
                 .pointsAwarded(DAILY_ATTENDANCE_POINTS)
                 .balance(user.getBalance())
-                .consecutiveDays(calculateConsecutiveDays(userId))
+                .consecutiveDays(consecutiveDays)
                 .build();
     }
 
