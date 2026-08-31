@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/controller/UserController.java
 package com.tourfolio.app.controller;
 
 import com.tourfolio.app.dto.ChargeRequest;
@@ -31,9 +32,10 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "회원을 찾을 수 없음")
     })
     public ResponseEntity<User> chargeBalance(@Valid @RequestBody ChargeRequest request) {
+        Long memberId = com.tourfolio.app.security.SecurityUtil.getCurrentUserId();
         log.info("POST /api/v1/user/charge - 자산 충전 요청: memberId={}, amount={}",
-                request.getMemberId(), request.getAmount());
-        User user = userService.chargeBalance(request.getMemberId(), request.getAmount());
+                memberId, request.getAmount());
+        User user = userService.chargeBalance(memberId, request.getAmount());
         return ResponseEntity.ok(user);
     }
 

@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/dto/ChargeRequest.java
 package com.tourfolio.app.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,10 +17,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Schema(description = "자산 충전 요청 DTO")
 public class ChargeRequest {
-
-    @Schema(description = "회원 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "회원 ID는 필수 항목입니다.")
-    private Long memberId;
 
     @Schema(description = "충전 금액", example = "100000", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "충전 금액은 필수 항목입니다.")
