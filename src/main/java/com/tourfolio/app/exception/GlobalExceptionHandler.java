@@ -29,6 +29,9 @@ public class GlobalExceptionHandler {
         if ("MEMBER_NOT_FOUND".equals(ex.getErrorCode()) || "SPOT_NOT_FOUND".equals(ex.getErrorCode())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
+        if ("UNAUTHORIZED_ADMIN".equals(ex.getErrorCode())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
         return ResponseEntity.badRequest().body(response);
     }
 

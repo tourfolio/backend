@@ -39,6 +39,10 @@ kakao:
   client-id: ${KAKAO_CLIENT_ID:e44fb0ab71d4de93e8dbda5971f20ac5}
   redirect-uri: https://tourfolio.kr/api/v1/auth/kakao/callback
 
+admin:
+  # 어드민 배치 API(X-Admin-Key 헤더) 인증용 키
+  api-key: ${ADMIN_API_KEY:tourfolio-admin-2026-temp}
+
 logging:
   level:
     com.tourfolio.app: DEBUG
