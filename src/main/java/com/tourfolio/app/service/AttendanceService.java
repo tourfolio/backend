@@ -32,7 +32,7 @@ public class AttendanceService {
     private final PointHistoryRepository pointHistoryRepository;
     private final NotificationService notificationService;
 
-    private static final int DAILY_ATTENDANCE_POINTS = 500;
+    private static final int DAILY_ATTENDANCE_POINTS = 1000;
 
     @Transactional
     public AttendanceCheckResponse checkIn(Long userId) {

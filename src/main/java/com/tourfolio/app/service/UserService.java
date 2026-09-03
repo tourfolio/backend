@@ -39,7 +39,7 @@ public class UserService {
         }
 
         // 회원 생성 (축하 포인트 50,000)
-        BigDecimal signupBonus = new BigDecimal("50000");
+        BigDecimal signupBonus = new BigDecimal("30000");
 
         User user = User.builder()
                 .email(request.getEmail())
