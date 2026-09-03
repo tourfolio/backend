@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/service/AttendanceService.java
 package com.tourfolio.app.service;
 
 import com.tourfolio.app.dto.AttendanceCalendarResponse;
@@ -129,15 +130,26 @@ public class AttendanceService {
         return streak;
     }
 
-    // 이번주(월~일) 출석 여부 배열 - MissionService에서도 사용
-    public List<Boolean> calculateWeeklyAttendance(Long userId) {
+    // 이번주(월~일) 출석 상태 배열 - MissionService에서도 사용
+    // 값: ATTENDED(출석함) / MISSED(못함, 지난 날) / FUTURE(아직 안 온 날)
+    public List<String> calculateWeeklyAttendance(Long userId) {
         LocalDate monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+        LocalDate today = LocalDate.now();
         var attendedDates = attendanceRepository.findByMemberIdOrderByAttendanceDateDesc(userId).stream()
                 .map(a -> a.getAttendanceDate().toLocalDate())
                 .collect(Collectors.toSet());
 
         return java.util.stream.IntStream.range(0, 7)
-                .mapToObj(i -> attendedDates.contains(monday.plusDays(i)))
+                .mapToObj(i -> {
+                    LocalDate day = monday.plusDays(i);
+                    if (attendedDates.contains(day)) {
+                        return "ATTENDED";
+                    } else if (day.isAfter(today)) {
+                        return "FUTURE";
+                    } else {
+                        return "MISSED";
+                    }
+                })
                 .collect(Collectors.toList());
     }
 

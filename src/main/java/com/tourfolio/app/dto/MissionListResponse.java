@@ -17,7 +17,7 @@ import java.util.List;
 public class MissionListResponse {
 
     private BigDecimal balance;
-    private List<Boolean> weeklyAttendance; // 월~일 순서, 7개
+    private List<String> weeklyAttendance; // 월~일 순서, 7개
     private Boolean attendedToday;
     private Integer inProgressCount;
     private Integer completedCount;

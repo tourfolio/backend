@@ -1,3 +1,4 @@
+// src/main/java/com/tourfolio/app/service/MissionService.java
 package com.tourfolio.app.service;
 
 import com.tourfolio.app.dto.MissionListResponse;
@@ -118,8 +119,8 @@ public class MissionService {
 
         userRepository.save(user);
 
-        List<Boolean> weekly = attendanceService.calculateWeeklyAttendance(userId);
-        boolean attendedToday = weekly.get(LocalDate.now().getDayOfWeek().getValue() - 1);
+        List<String> weekly = attendanceService.calculateWeeklyAttendance(userId);
+        boolean attendedToday = "ATTENDED".equals(weekly.get(LocalDate.now().getDayOfWeek().getValue() - 1));
 
         return MissionListResponse.builder()
                 .balance(user.getBalance())
