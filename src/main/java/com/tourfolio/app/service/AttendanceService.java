@@ -131,10 +131,14 @@ public class AttendanceService {
     }
 
     // 이번주(월~일) 출석 상태 배열 - MissionService에서도 사용
-    // 값: ATTENDED(출석함) / MISSED(못함, 지난 날) / FUTURE(아직 안 온 날)
+    // 값: ATTENDED(출석함) / MISSED(못함, 지난 날) / FUTURE(아직 안 온 날) / BEFORE_SIGNUP(가입 전 날짜)
     public List<String> calculateWeeklyAttendance(Long userId) {
         LocalDate monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
         LocalDate today = LocalDate.now();
+
+        User user = userRepository.findById(userId).orElse(null);
+        LocalDate signupDate = user != null ? user.getCreatedAt().toLocalDate() : null;
+
         var attendedDates = attendanceRepository.findByMemberIdOrderByAttendanceDateDesc(userId).stream()
                 .map(a -> a.getAttendanceDate().toLocalDate())
                 .collect(Collectors.toSet());
@@ -146,6 +150,8 @@ public class AttendanceService {
                         return "ATTENDED";
                     } else if (day.isAfter(today)) {
                         return "FUTURE";
+                    } else if (signupDate != null && day.isBefore(signupDate)) {
+                        return "BEFORE_SIGNUP";
                     } else {
                         return "MISSED";
                     }
