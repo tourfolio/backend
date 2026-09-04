@@ -23,7 +23,7 @@ public class MyPageController {
     private final MyPageService myPageService;
 
     @GetMapping
-    @Operation(summary = "마이페이지 요약 조회", description = "닉네임, 보유 포인트, 보유 카드 수, 총 수익률을 조회합니다.")
+    @Operation(summary = "마이페이지 요약 조회", description = "닉네임, 보유 포인트, 보유 카드 수, 총 수익률을 조회합니다. (토큰 필요)")
     public ResponseEntity<MyPageResponse> getMyPage() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/mypage - 마이페이지 요약 조회: userId={}", userId);
@@ -31,7 +31,7 @@ public class MyPageController {
     }
 
     @DeleteMapping
-    @Operation(summary = "회원 탈퇴", description = "계정을 비활성화(소프트 삭제) 처리합니다.")
+    @Operation(summary = "회원 탈퇴", description = "계정을 비활성화(소프트 삭제) 처리합니다. (토큰 필요)")
     public ResponseEntity<Void> withdraw() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("DELETE /api/v1/mypage - 회원 탈퇴 요청: userId={}", userId);

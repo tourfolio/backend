@@ -22,7 +22,7 @@ public class AttendanceController {
     private final AttendanceService attendanceService;
 
     @PostMapping("/check")
-    @Operation(summary = "출석체크 하기", description = "오늘 출석체크를 하고 포인트(500P)를 지급받습니다.")
+    @Operation(summary = "출석체크 하기", description = "오늘 출석체크를 하고 포인트(500P)를 지급받습니다.(토큰 필요)")
     public ResponseEntity<AttendanceCheckResponse> checkIn() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("POST /api/v1/attendance/check - 출석체크 요청: userId={}", userId);
@@ -30,7 +30,7 @@ public class AttendanceController {
     }
 
     @GetMapping("/calendar")
-    @Operation(summary = "월간 출석 캘린더 조회")
+    @Operation(summary = "월간 출석 캘린더 조회", description = "(토큰 필요)")
     public ResponseEntity<AttendanceCalendarResponse> getCalendar(
             @Parameter(description = "연도", example = "2026") @RequestParam int year,
             @Parameter(description = "월", example = "8") @RequestParam int month) {

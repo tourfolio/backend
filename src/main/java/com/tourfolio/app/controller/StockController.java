@@ -130,7 +130,7 @@ public class StockController {
     }
 
     @PostMapping("/stocks/trade")
-    @Operation(summary = "가상 주식 매수/매도", description = "회원 ID, 종목 ID, 거래 유형, 수량을 받아 가상 주식 거래를 체결합니다.")
+    @Operation(summary = "가상 주식 매수/매도", description = "회원 ID, 종목 ID, 거래 유형, 수량을 받아 가상 주식 거래를 체결합니다. (토큰 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "거래 성공"),
             @ApiResponse(responseCode = "400", description = "잔액 부족 또는 유효하지 않은 요청"),
@@ -143,7 +143,7 @@ public class StockController {
     }
 
     @GetMapping("/portfolio")
-    @Operation(summary = "회원 포트폴리오 조회", description = "회원의 현금, 보유 주식 평가금액, 수익률, 보유 종목 목록을 조회합니다.")
+    @Operation(summary = "회원 포트폴리오 조회", description = "회원의 현금, 보유 주식 평가금액, 수익률, 보유 종목 목록을 조회합니다. (토큰 필요)")
     public ResponseEntity<MemberAssetResponse> getMemberAssets(
             @RequestParam(required = false, defaultValue = "profit_rate") String sort) {
         Long memberId = SecurityUtil.getCurrentUserId();
@@ -152,7 +152,7 @@ public class StockController {
     }
 
     @GetMapping("/portfolio/summary")
-    @Operation(summary = "포트폴리오 요약 조회", description = "투자 홈 메인용 총 평가금액, 평가손익, 수익률, 자산 추이 데이터를 조회합니다.")
+    @Operation(summary = "포트폴리오 요약 조회", description = "투자 홈 메인용 총 평가금액, 평가손익, 수익률, 자산 추이 데이터를 조회합니다. (토큰 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "포트폴리오 요약 조회 성공"),
             @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")

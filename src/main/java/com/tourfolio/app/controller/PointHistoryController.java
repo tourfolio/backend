@@ -22,7 +22,7 @@ public class PointHistoryController {
     private final PointHistoryService pointHistoryService;
 
     @GetMapping("/history")
-    @Operation(summary = "포인트 내역 조회", description = "출석/미션 보상, 주식 거래를 포함한 통합 잔액 변동 내역을 조회합니다.")
+    @Operation(summary = "포인트 내역 조회", description = "출석/미션 보상, 주식 거래를 포함한 통합 잔액 변동 내역을 조회합니다. (토큰 필요)")
     public ResponseEntity<PointHistoryResponse> getHistory() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/points/history - 포인트 내역 조회: userId={}", userId);

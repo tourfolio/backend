@@ -31,7 +31,7 @@ public class CollectionController {
     @GetMapping
     @Operation(
             summary = "수집 메인 화면 조회",
-            description = "수집 탭 메인 화면의 카드 목록을 조회합니다. 지역, 테마, 희귀도, 보유여부 필터링을 지원하며, 전체 수집 요약은 필터와 무관하게 항상 전체 카드 기준으로 계산됩니다."
+            description = "수집 탭 메인 화면의 카드 목록을 조회합니다. 지역, 테마, 희귀도, 보유여부 필터링을 지원하며, 전체 수집 요약은 필터와 무관하게 항상 전체 카드 기준으로 계산됩니다. (토큰 필요)"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "수집 메인 화면 조회 성공"),
@@ -62,7 +62,7 @@ public class CollectionController {
     @GetMapping("/cards/{cardId}")
     @Operation(
             summary = "포토카드 상세 조회",
-            description = "특정 포토카드의 상세 정보를 조회합니다. 보유 여부에 따라 앞면/뒷면 데이터를 다르게 반환합니다."
+            description = "특정 포토카드의 상세 정보를 조회합니다. 보유 여부에 따라 앞면/뒷면 데이터를 다르게 반환합니다. (토큰 필요)"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "포토카드 상세 조회 성공"),
@@ -102,7 +102,7 @@ public class CollectionController {
     @PostMapping("/cards/{cardId}/acquire")
     @Operation(
             summary = "카드 획득 (방문 인증)",
-            description = "앱에서 GPS 기반 거리 확인(200m 이내)을 마친 뒤 호출합니다. 위치 정보는 서버로 전송하지 않으며, 호출되면 서버는 별도 검증 없이 카드를 지급합니다."
+            description = "앱에서 GPS 기반 거리 확인(200m 이내)을 마친 뒤 호출합니다. 위치 정보는 서버로 전송하지 않으며, 호출되면 서버는 별도 검증 없이 카드를 지급합니다. (토큰 필요)"
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "카드 획득 성공"),

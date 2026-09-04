@@ -22,7 +22,7 @@ public class HomeController {
     private final HomeService homeService;
 
     @GetMapping
-    @Operation(summary = "홈 화면 조회", description = "내 포트폴리오, 보유 카드 현황, 이번주 추천 관광지를 한 번에 조회합니다.")
+    @Operation(summary = "홈 화면 조회", description = "내 포트폴리오, 보유 카드 현황, 이번주 추천 관광지를 한 번에 조회합니다.(토큰 필요)")
     public ResponseEntity<HomeResponse> getHome() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/home - 홈 화면 조회: userId={}", userId);

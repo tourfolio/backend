@@ -25,7 +25,7 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/charge")
-    @Operation(summary = "자산 충전", description = "회원의 예수금을 충전합니다. 테스트용 포인트 충전에 사용됩니다.")
+    @Operation(summary = "자산 충전", description = "회원의 예수금을 충전합니다. 테스트용 포인트 충전에 사용됩니다. (토큰 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "자산 충전 성공"),
             @ApiResponse(responseCode = "400", description = "유효하지 않은 충전 금액"),
@@ -40,7 +40,7 @@ public class UserController {
     }
 
     @PutMapping("/profile")
-    @Operation(summary = "프로필 수정", description = "회원의 닉네임을 수정합니다.")
+    @Operation(summary = "프로필 수정", description = "회원의 닉네임을 수정합니다. (토큰 필요)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "프로필 수정 성공"),
             @ApiResponse(responseCode = "400", description = "이미 사용 중인 닉네임 또는 유효하지 않은 요청"),

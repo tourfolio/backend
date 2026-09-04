@@ -22,7 +22,7 @@ public class MissionController {
     private final MissionService missionService;
 
     @GetMapping
-    @Operation(summary = "업적 메인 화면 조회", description = "보유 포인트, 이번주 출석, 진행중/완료 미션 목록을 조회합니다.")
+    @Operation(summary = "업적 메인 화면 조회", description = "보유 포인트, 이번주 출석, 진행중/완료 미션 목록을 조회합니다. (토큰 필요)")
     public ResponseEntity<MissionListResponse> getMissions() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/missions - 업적 메인 화면 조회: userId={}", userId);

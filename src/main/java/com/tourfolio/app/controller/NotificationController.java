@@ -23,7 +23,7 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    @Operation(summary = "알림 목록 조회", description = "새로운 알림과 지난 알림을 나눠서 반환합니다. 조회 시 미읽음 알림은 읽음 처리됩니다.")
+    @Operation(summary = "알림 목록 조회", description = "새로운 알림과 지난 알림을 나눠서 반환합니다. 조회 시 미읽음 알림은 읽음 처리됩니다. (토큰 필요)")
     public ResponseEntity<NotificationListResponse> getNotifications() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/notifications - 알림 목록 조회: userId={}", userId);
@@ -31,7 +31,7 @@ public class NotificationController {
     }
 
     @PostMapping("/location-permission")
-    @Operation(summary = "위치 권한 허용 알림 생성", description = "프론트에서 위치 권한이 허용된 시점에 호출합니다. 별도 요청값 없이 알림만 생성합니다.")
+    @Operation(summary = "위치 권한 허용 알림 생성", description = "프론트에서 위치 권한이 허용된 시점에 호출합니다. 별도 요청값 없이 알림만 생성합니다. (토큰 필요)")
     public ResponseEntity<Void> createLocationPermissionNotification() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("POST /api/v1/notifications/location-permission - 위치 권한 알림 생성: userId={}", userId);
