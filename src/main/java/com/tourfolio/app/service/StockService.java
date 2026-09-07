@@ -54,9 +54,9 @@ public class StockService {
     private final NotificationService notificationService;
 
     @Transactional(rollbackFor = Exception.class)
-    public Transaction executeTrade(TradeRequest request) {
-        User user = userRepository.findById(request.getMemberId())
-                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + request.getMemberId()));
+    public Transaction executeTrade(Long memberId, TradeRequest request) {
+        User user = userRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException("MEMBER_NOT_FOUND", "해당 사용자를 조회할 수 없습니다. ID: " + memberId));
 
         StockSpot stockSpot = stockSpotRepository.findById(request.getSpotId())
                 .orElseThrow(() -> new CustomException("SPOT_NOT_FOUND", "상장되지 않은 관광 자산 종목입니다. ID: " + request.getSpotId()));
@@ -207,6 +207,17 @@ public class StockService {
             totalProfitLossRate = diff.divide(totalStockPurchaseCost, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
         }
 
+        // 이번달 실현손익 계산
+        LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime monthEnd = LocalDateTime.now();
+        BigDecimal monthlyProfit = transactionRepository.sumRealizedProfitByMemberIdAndCreatedAtBetween(memberId, monthStart, monthEnd);
+        BigDecimal monthlySellAmount = transactionRepository.sumSellAmountByMemberIdAndCreatedAtBetween(memberId, monthStart, monthEnd);
+        BigDecimal monthlyCostBasis = monthlySellAmount.subtract(monthlyProfit);
+        BigDecimal monthlyProfitRate = BigDecimal.ZERO;
+        if (monthlyCostBasis.compareTo(BigDecimal.ZERO) > 0) {
+            monthlyProfitRate = monthlyProfit.divide(monthlyCostBasis, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+        }
+
         return MemberAssetResponse.builder()
                 .memberId(user.getId())
                 .username(user.getNickname())
@@ -214,6 +225,8 @@ public class StockService {
                 .totalStockValue(totalStockValue)
                 .totalAssetValue(totalAssetValue)
                 .totalProfitLossRate(totalProfitLossRate)
+                .monthlyProfit(monthlyProfit)
+                .monthlyProfitRate(monthlyProfitRate)
                 .items(items)
                 .build();
     }
@@ -440,13 +453,12 @@ public class StockService {
             lastUpdated = stockSpot.getLastUpdated();
         }
 
-        String address = null;
+        Spot spot = null;
         if (stockSpot.getSpotId() != null) {
-            Spot spot = spotRepository.findById(stockSpot.getSpotId()).orElse(null);
-            if (spot != null) {
-                address = spot.getAddress();
-            }
+            spot = spotRepository.findById(stockSpot.getSpotId()).orElse(null);
         }
+        String address = spot != null ? spot.getAddress() : null;
+        BigDecimal ipoPrice = spot != null ? spot.getIpoPrice() : null;
 
         LocalDateTime todayStart = LocalDate.now().atStartOfDay();
         LocalDateTime todayEnd = LocalDate.now().atTime(23, 59, 59);
@@ -468,6 +480,7 @@ public class StockService {
                 .tier(stockSpot.getTier())
                 .currentPrice(currentPrice)
                 .prevPrice(prevPrice)
+                .ipoPrice(ipoPrice)
                 .changeRate(changeRate)
                 .lastUpdated(lastUpdated)
                 .address(address)
@@ -727,17 +740,6 @@ public class StockService {
             profitRate = totalProfitLoss.divide(totalPurchase, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
         }
 
-        // 이번달 실현손익 계산
-        LocalDateTime monthStart = LocalDate.now().withDayOfMonth(1).atStartOfDay();
-        LocalDateTime monthEnd = LocalDateTime.now();
-        BigDecimal monthlyProfit = transactionRepository.sumRealizedProfitByMemberIdAndCreatedAtBetween(userId, monthStart, monthEnd);
-        BigDecimal monthlySellAmount = transactionRepository.sumSellAmountByMemberIdAndCreatedAtBetween(userId, monthStart, monthEnd);
-        BigDecimal monthlyCostBasis = monthlySellAmount.subtract(monthlyProfit);
-        BigDecimal monthlyProfitRate = BigDecimal.ZERO;
-        if (monthlyCostBasis.compareTo(BigDecimal.ZERO) > 0) {
-            monthlyProfitRate = monthlyProfit.divide(monthlyCostBasis, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
-        }
-
         // 자산 추이 데이터 생성 (기간별 주가 기반 실제 계산)
         List<PortfolioSummaryResponse.AssetHistoryItem> assetHistory = generateAssetHistory(userId, period, portfolios, user.getBalance());
 
@@ -748,8 +750,6 @@ public class StockService {
                 .totalProfitLoss(totalProfitLoss)
                 .profitRate(profitRate)
                 .cashBalance(user.getBalance())
-                .monthlyProfit(monthlyProfit)
-                .monthlyProfitRate(monthlyProfitRate)
                 .assetHistory(assetHistory)
                 .build();
     }

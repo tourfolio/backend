@@ -137,8 +137,9 @@ public class StockController {
             @ApiResponse(responseCode = "404", description = "주식 종목을 찾을 수 없음")
     })
     public ResponseEntity<Transaction> executeTrade(@Valid @RequestBody TradeRequest request) {
-        log.info("POST /api/stocks/trade - 가상 체결 시스템 오더 수신: {}", request);
-        Transaction tx = stockService.executeTrade(request);
+        Long memberId = SecurityUtil.getCurrentUserId();
+        log.info("POST /api/stocks/trade - 가상 체결 시스템 오더 수신: memberId={}, request={}", memberId, request);
+        Transaction tx = stockService.executeTrade(memberId, request);
         return ResponseEntity.ok(tx);
     }
 

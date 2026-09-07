@@ -18,10 +18,6 @@ import java.math.BigDecimal;
 @Schema(description = "주식 거래 요청 DTO")
 public class TradeRequest {
 
-    @Schema(description = "회원 ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "회원 ID는 필수 항목입니다.")
-    private Long memberId;
-
     @Schema(description = "관광지(주식) ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "관광지 ID는 필수 항목입니다.")
     private Long spotId;

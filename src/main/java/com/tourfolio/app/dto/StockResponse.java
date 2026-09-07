@@ -20,6 +20,7 @@ public class StockResponse {
     private Integer tier;
     private BigDecimal currentPrice;
     private BigDecimal prevPrice;
+    private BigDecimal ipoPrice;
     private BigDecimal changeRate;
     private LocalDateTime lastUpdated;
     private String address;

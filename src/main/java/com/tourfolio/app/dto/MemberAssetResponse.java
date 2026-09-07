@@ -19,6 +19,8 @@ public class MemberAssetResponse {
     private BigDecimal totalStockValue;    // 보유한 주식들의 평가 금액 총합
     private BigDecimal totalAssetValue;    // 현금 + 주식 총 자산
     private BigDecimal totalProfitLossRate; // 총 투자 수익률 (%)
+    private BigDecimal monthlyProfit;      // 이번달 실현손익 (원)
+    private BigDecimal monthlyProfitRate;  // 이번달 실현손익률 (%)
     private List<AssetItem> items;         // 보유 종목 상세 상세
 
     @Data
