@@ -53,7 +53,8 @@ public class TourIndicatorService {
     private static final Map<String, String> TATS_NAME_OVERRIDE = Map.of(
             "전주한옥마을", "전북 전주 한옥마을 [슬로시티]",
             "순천만국가정원", "순천만 국가정원",
-            "지리산 천왕봉", "지리산국립공원(함양)"
+            "지리산 천왕봉", "지리산국립공원(함양)",
+            "통도사(양산)", "통도사 [유네스코 세계유산]"
     );
 
     private String resolveTatsName(String dbName) {
