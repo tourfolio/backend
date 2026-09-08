@@ -33,7 +33,7 @@ public class HomeService {
         int stockCount = portfolioRepository.findByMemberId(userId).size();
 
         HomeResponse.PortfolioSummary portfolio = HomeResponse.PortfolioSummary.builder()
-                .totalAsset(summary.getTotalAsset())
+                .totalAsset(summary.getTotalEvaluation())
                 .todayProfit(summary.getTotalProfitLoss())
                 .todayProfitRate(summary.getProfitRate())
                 .totalProfitRate(summary.getProfitRate())
