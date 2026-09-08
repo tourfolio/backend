@@ -1,5 +1,6 @@
 package com.tourfolio.app.service;
 
+import com.tourfolio.app.entity.PointHistory;
 import com.tourfolio.app.entity.User;
 import com.tourfolio.app.dto.AuthResponse;
 import com.tourfolio.app.dto.LoginRequest;
@@ -8,6 +9,7 @@ import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.exception.DuplicateEmailException;
 import com.tourfolio.app.exception.DuplicateNicknameException;
 import com.tourfolio.app.exception.InvalidCredentialsException;
+import com.tourfolio.app.repository.PointHistoryRepository;
 import com.tourfolio.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +29,10 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PointHistoryRepository pointHistoryRepository;
+    private final NotificationService notificationService;
 
-    // 1. 회원가입: 축하 포인트 50,000 지급
+    // 1. 회원가입: 축하 포인트 30,000 지급
     @Transactional
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -38,7 +42,7 @@ public class UserService {
             throw new DuplicateNicknameException("이미 사용 중인 닉네임입니다.");
         }
 
-        // 회원 생성 (축하 포인트 50,000)
+        // 회원 생성 (축하 포인트 30,000)
         BigDecimal signupBonus = new BigDecimal("30000");
 
         User user = User.builder()
@@ -52,6 +56,18 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
+
+        pointHistoryRepository.save(PointHistory.builder()
+                .userId(savedUser.getId())
+                .type("SIGNUP")
+                .title("회원가입 축하 포인트")
+                .amount(signupBonus.longValue())
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        notificationService.notify(savedUser.getId(), "SIGNUP_BONUS",
+                "회원가입 축하 포인트로 " + signupBonus.longValue() + "P가 지급되었습니다");
+
         log.info("회원가입 성공: userId={}, 지급 잔액={}", savedUser.getId(), savedUser.getBalance());
 
         return createAuthResponse(savedUser);
