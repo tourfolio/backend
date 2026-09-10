@@ -128,6 +128,7 @@ public class ExploreService {
                 .themeTag(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme())
                 .tier(spot.getTier())
                 .imageUrl(getImageUrlWithFallback(spot))
+                .hasImage(spot.getImageUrl() != null && !spot.getImageUrl().isEmpty())
                 .description(spot.getDescription())
                 .mapX(spot.getMapX())
                 .mapY(spot.getMapY())

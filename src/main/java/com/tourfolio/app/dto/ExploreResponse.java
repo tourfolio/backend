@@ -37,6 +37,9 @@ public class ExploreResponse {
     @Schema(description = "대표 이미지 URL", example = "https://example.com/images/spot1.jpg")
     private String imageUrl;
 
+    @Schema(description = "실제 이미지 보유 여부 (false면 imageUrl은 플레이스홀더)", example = "true")
+    private Boolean hasImage;
+
     @Schema(description = "관광지 요약 설명", example = "해운대의 랜드마크 쇼핑몰과 호텔 복합 시설")
     private String description;
 
