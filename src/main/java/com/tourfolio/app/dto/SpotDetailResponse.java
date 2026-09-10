@@ -24,6 +24,9 @@ public class SpotDetailResponse {
     @Schema(description = "대표 이미지 URL", example = "https://tong.visitkorea.or.kr/cms/resource/98/3487598_image2_1.jpg")
     private String imageUrl;
 
+    @Schema(description = "실제 이미지 보유 여부 (false면 imageUrl은 플레이스홀더)", example = "true")
+    private Boolean hasImage;
+
     @Schema(description = "지도 X좌표(경도)", example = "126.9769")
     private String mapX;
 
@@ -59,6 +62,5 @@ public class SpotDetailResponse {
 
     @Schema(description = "주변 관광지 목록")
     private List<NearbySpot> nearbySpots;
-
 
 }

@@ -43,6 +43,9 @@ public class SearchResponse {
         @Schema(description = "이미지 URL", example = "https://example.com/images/gyeongbokgung.jpg")
         private String imageUrl;
 
+        @Schema(description = "실제 이미지 보유 여부 (false면 imageUrl은 플레이스홀더)", example = "true")
+        private Boolean hasImage;
+
         @Schema(description = "태그 목록", example = "[\"역사\", \"문화\", \"야경\"]")
         private List<String> tags;
     }

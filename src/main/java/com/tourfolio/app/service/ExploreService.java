@@ -80,6 +80,10 @@ public class ExploreService {
         return spot.getImageUrl() != null && !spot.getImageUrl().isEmpty() ? spot.getImageUrl() : DEFAULT_IMAGE_URL;
     }
 
+    private boolean hasRealImage(Spot spot) {
+        return spot.getImageUrl() != null && !spot.getImageUrl().isEmpty();
+    }
+
     private List<String> parseTags(String themeTag) {
         if (themeTag == null || themeTag.trim().isEmpty()) {
             return List.of();
@@ -128,7 +132,7 @@ public class ExploreService {
                 .themeTag(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme())
                 .tier(spot.getTier())
                 .imageUrl(getImageUrlWithFallback(spot))
-                .hasImage(spot.getImageUrl() != null && !spot.getImageUrl().isEmpty())
+                .hasImage(hasRealImage(spot))
                 .description(spot.getDescription())
                 .mapX(spot.getMapX())
                 .mapY(spot.getMapY())
@@ -153,6 +157,7 @@ public class ExploreService {
                             .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
                             .address(spot.getAddress() != null ? spot.getAddress() : "")
                             .imageUrl(getImageUrlWithFallback(spot))
+                            .hasImage(hasRealImage(spot))
                             .theme(spot.getTheme() != null ? spot.getTheme() : "")
                             .tags(parseTags(spot.getThemeTag()))
                             .totalCount(Math.min(spots.size(), 6))
@@ -202,6 +207,7 @@ public class ExploreService {
                             .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
                             .popularityRank(index)
                             .imageUrl(getImageUrlWithFallback(spot))
+                            .hasImage(hasRealImage(spot))
                             .address(spot.getAddress() != null ? spot.getAddress() : "")
                             .build();
                 })
@@ -231,6 +237,7 @@ public class ExploreService {
                         .name(spot.getName())
                         .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
                         .imageUrl(getImageUrlWithFallback(spot))
+                        .hasImage(hasRealImage(spot))
                         .tags(Arrays.asList(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme()))
                         .build())
                 .collect(Collectors.toList());
@@ -269,6 +276,7 @@ public class ExploreService {
                         .spotId(s.getId() != null ? s.getId() : 0L)
                         .name(s.getName() != null ? s.getName() : "")
                         .imageUrl(getImageUrlWithFallback(s))
+                        .hasImage(hasRealImage(s))
                         .build())
                 .collect(Collectors.toList());
 
@@ -285,6 +293,8 @@ public class ExploreService {
         String mapY = (liveCommon != null && liveCommon.getMapY() != null && !liveCommon.getMapY().isBlank())
                 ? liveCommon.getMapY() : spot.getMapY();
 
+        boolean hasImage = imageUrl != null && !imageUrl.equals(DEFAULT_IMAGE_URL);
+
         // 운영정보(시간/휴무일/전화/웹사이트) 라이브 조회 시도 — 실패/누락 시 하드코딩 값으로 폴백. 입장료는 항상 하드코딩 값 사용.
         String[] info = getSpotDetailInfoWithApiFallback(spot, liveCommon);
 
@@ -298,6 +308,7 @@ public class ExploreService {
                 .spotId(spot.getId() != null ? spot.getId() : 0L)
                 .name(spot.getName() != null ? spot.getName() : "")
                 .imageUrl(imageUrl)
+                .hasImage(hasImage)
                 .mapX(mapX)
                 .mapY(mapY)
                 .address(address)
@@ -338,6 +349,7 @@ public class ExploreService {
                         .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
                         .address(spot.getAddress() != null ? spot.getAddress() : "")
                         .imageUrl(getImageUrlWithFallback(spot))
+                        .hasImage(hasRealImage(spot))
                         .tags(Arrays.asList(spot.getThemeTag() != null ? spot.getThemeTag() : spot.getTheme()))
                         .build())
                 .collect(Collectors.toList());

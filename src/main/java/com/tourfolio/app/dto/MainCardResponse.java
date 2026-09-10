@@ -36,6 +36,9 @@ public class MainCardResponse {
     @Schema(description = "풀스크린 배경 이미지 URL", example = "https://example.com/images/gyeongbokgung.jpg")
     private String imageUrl;
 
+    @Schema(description = "실제 이미지 보유 여부 (false면 imageUrl은 플레이스홀더)", example = "true")
+    private Boolean hasImage;
+
     @Schema(description = "테마", example = "역사")
     private String theme;
 

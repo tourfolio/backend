@@ -21,4 +21,7 @@ public class NearbySpot {
 
     @Schema(description = "이미지 URL", example = "https://example.com/images/changdeokgung.jpg")
     private String imageUrl;
+
+    @Schema(description = "실제 이미지 보유 여부 (false면 imageUrl은 플레이스홀더)", example = "true")
+    private Boolean hasImage;
 }
