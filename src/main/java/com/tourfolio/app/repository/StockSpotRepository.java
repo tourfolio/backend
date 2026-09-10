@@ -8,11 +8,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface StockSpotRepository extends JpaRepository<StockSpot, Long> {
 
     List<StockSpot> findAllByOrderByTierAscNameAsc();
+
+    Optional<StockSpot> findBySpotId(Long spotId);
 
     @Query("SELECT s FROM StockSpot s WHERE (:region IS NULL OR s.regionName = :region) AND (:theme IS NULL OR s.theme = :theme)")
     List<StockSpot> findByRegionAndTheme(@Param("region") String region, @Param("theme") String theme);

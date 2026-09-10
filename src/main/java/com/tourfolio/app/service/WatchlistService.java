@@ -4,10 +4,14 @@ package com.tourfolio.app.service;
 import com.tourfolio.app.dto.WatchlistResponse;
 import com.tourfolio.app.entity.Watchlist;
 import com.tourfolio.app.entity.Spot;
+import com.tourfolio.app.entity.StockSpot;
+import com.tourfolio.app.entity.PriceHistory;
 import com.tourfolio.app.entity.User;
 import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.repository.WatchlistRepository;
 import com.tourfolio.app.repository.SpotRepository;
+import com.tourfolio.app.repository.StockSpotRepository;
+import com.tourfolio.app.repository.PriceHistoryRepository;
 import com.tourfolio.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +31,8 @@ public class WatchlistService {
 
     private final WatchlistRepository watchlistRepository;
     private final SpotRepository spotRepository;
+    private final StockSpotRepository stockSpotRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
     private final UserRepository userRepository;
 
     @Transactional(rollbackFor = Exception.class)
@@ -95,12 +101,29 @@ public class WatchlistService {
                             return null;
                         }
 
-                        BigDecimal changeRate = BigDecimal.ZERO;
-                        if (spot.getPrevPrice().compareTo(BigDecimal.ZERO) > 0) {
-                            changeRate = spot.getCurrentPrice().subtract(spot.getPrevPrice())
-                                    .divide(spot.getPrevPrice(), 4, RoundingMode.HALF_UP)
-                                    .multiply(BigDecimal.valueOf(100))
-                                    .setScale(2, RoundingMode.HALF_UP);
+                        // 실제 매매/배치는 stock_spots + price_history 기준이라 이쪽 데이터를 우선 사용
+                        StockSpot stockSpot = stockSpotRepository.findBySpotId(spot.getId()).orElse(null);
+
+                        BigDecimal currentPrice;
+                        BigDecimal changeRate;
+
+                        if (stockSpot != null) {
+                            PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(stockSpot.getId());
+                            if (latestHistory != null) {
+                                currentPrice = latestHistory.getPrice();
+                                changeRate = latestHistory.getChangeRate()
+                                        .multiply(BigDecimal.valueOf(100))
+                                        .setScale(2, RoundingMode.HALF_UP);
+                            } else {
+                                currentPrice = stockSpot.getCurrentPrice();
+                                changeRate = stockSpot.getChangeRate() != null
+                                        ? stockSpot.getChangeRate().multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP)
+                                        : BigDecimal.ZERO;
+                            }
+                        } else {
+                            // 주식 종목이 아닌 탐색 전용 관광지는 가격 개념이 없음
+                            currentPrice = BigDecimal.ZERO;
+                            changeRate = BigDecimal.ZERO;
                         }
 
                         return WatchlistResponse.builder()
@@ -109,7 +132,7 @@ public class WatchlistService {
                                 .spotName(spot.getName())
                                 .region(spot.getRegion())
                                 .theme(spot.getTheme())
-                                .currentPrice(spot.getCurrentPrice())
+                                .currentPrice(currentPrice)
                                 .changeRate(changeRate)
                                 .createdAt(watchlist.getCreatedAt())
                                 .build();
