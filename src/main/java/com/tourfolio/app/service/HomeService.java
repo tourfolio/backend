@@ -54,13 +54,17 @@ public class HomeService {
 
         // 3. 이번주 추천 관광지 (관리자가 DB에서 직접 지정)
         List<HomeResponse.RecommendedSpotItem> recommended = spotRepository.findByIsWeeklyRecommendedTrueOrderByRecommendOrderAsc().stream()
-                .map(spot -> HomeResponse.RecommendedSpotItem.builder()
-                        .spotId(spot.getId())
-                        .name(spot.getName())
-                        .imageUrl(spot.getImageUrl() != null && !spot.getImageUrl().isEmpty() ? spot.getImageUrl() : DEFAULT_IMAGE_URL)
-                        .description(spot.getDescription())
-                        .tags(parseTags(spot.getThemeTag()))
-                        .build())
+                .map(spot -> {
+                    boolean hasImage = spot.getImageUrl() != null && !spot.getImageUrl().isEmpty();
+                    return HomeResponse.RecommendedSpotItem.builder()
+                            .spotId(spot.getId())
+                            .name(spot.getName())
+                            .imageUrl(hasImage ? spot.getImageUrl() : DEFAULT_IMAGE_URL)
+                            .hasImage(hasImage)
+                            .description(spot.getDescription())
+                            .tags(parseTags(spot.getThemeTag()))
+                            .build();
+                })
                 .collect(Collectors.toList());
         log.info("홈 화면 조회 완료: userId={}, stockCount={}, cardCount={}/{}, recommended={}건",
                 userId, stockCount, ownedCount, totalCount, recommended.size());

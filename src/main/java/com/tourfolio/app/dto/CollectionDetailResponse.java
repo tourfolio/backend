@@ -25,5 +25,6 @@ public class CollectionDetailResponse {
         private Long spotId;
         private String name;
         private String imageUrl;
+        private Boolean hasImage;
     }
 }

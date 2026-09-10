@@ -50,6 +50,7 @@ public class CollectionExploreService {
                             .spotId(spot.getId())
                             .name(spot.getName())
                             .imageUrl(spot.getImageUrl())
+                            .hasImage(spot.getImageUrl() != null && !spot.getImageUrl().isEmpty())
                             .build();
                 })
                 .filter(java.util.Objects::nonNull)

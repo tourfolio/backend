@@ -48,6 +48,7 @@ public class HomeResponse {
         private Long spotId;
         private String name;
         private String imageUrl;
+        private Boolean hasImage;
         private String description;
         private List<String> tags;
     }
