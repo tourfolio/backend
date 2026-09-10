@@ -2,11 +2,13 @@ package com.tourfolio.app.service;
 
 import com.tourfolio.app.dto.MyPageResponse;
 import com.tourfolio.app.entity.Portfolio;
-import com.tourfolio.app.entity.Spot;
+import com.tourfolio.app.entity.PriceHistory;
+import com.tourfolio.app.entity.StockSpot;
 import com.tourfolio.app.entity.User;
 import com.tourfolio.app.exception.CustomException;
 import com.tourfolio.app.repository.PortfolioRepository;
-import com.tourfolio.app.repository.SpotRepository;
+import com.tourfolio.app.repository.PriceHistoryRepository;
+import com.tourfolio.app.repository.StockSpotRepository;
 import com.tourfolio.app.repository.UserCardRepository;
 import com.tourfolio.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,7 +28,8 @@ public class MyPageService {
     private final UserRepository userRepository;
     private final UserCardRepository userCardRepository;
     private final PortfolioRepository portfolioRepository;
-    private final SpotRepository spotRepository;
+    private final StockSpotRepository stockSpotRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
 
     public MyPageResponse getMyPage(Long userId) {
         User user = userRepository.findById(userId)
@@ -39,9 +42,19 @@ public class MyPageService {
         BigDecimal totalCost = BigDecimal.ZERO;
 
         for (Portfolio p : portfolios) {
-            Spot spot = spotRepository.findById(p.getSpotId()).orElse(null);
-            if (spot == null) continue;
-            totalEval = totalEval.add(spot.getCurrentPrice().multiply(p.getQuantity()));
+            // 실제 매매/배치는 stock_spots + price_history 기준이라 이쪽 데이터를 우선 사용
+            StockSpot stockSpot = stockSpotRepository.findBySpotId(p.getSpotId()).orElse(null);
+            if (stockSpot == null) continue;
+
+            BigDecimal currentPrice;
+            PriceHistory latestHistory = priceHistoryRepository.findFirstBySpotIdOrderByTradeDateDesc(stockSpot.getId());
+            if (latestHistory != null) {
+                currentPrice = latestHistory.getPrice();
+            } else {
+                currentPrice = stockSpot.getCurrentPrice();
+            }
+
+            totalEval = totalEval.add(currentPrice.multiply(p.getQuantity()));
             totalCost = totalCost.add(p.getAveragePurchasePrice().multiply(p.getQuantity()));
         }
 
