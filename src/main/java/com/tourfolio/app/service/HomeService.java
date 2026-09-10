@@ -37,6 +37,7 @@ public class HomeService {
                 .todayProfit(summary.getTotalProfitLoss())
                 .todayProfitRate(summary.getProfitRate())
                 .totalProfitRate(summary.getProfitRate())
+                .pointBalance(summary.getCashBalance())
                 .stockCount(stockCount)
                 .build();
 

@@ -26,6 +26,7 @@ public class HomeResponse {
         private BigDecimal todayProfit;
         private BigDecimal todayProfitRate;
         private BigDecimal totalProfitRate;
+        private BigDecimal pointBalance;
         private Integer stockCount;
     }
 
