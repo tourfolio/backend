@@ -49,6 +49,7 @@ public class StockService {
     private final PortfolioRepository portfolioRepository;
     private final PriceHistoryRepository priceHistoryRepository;
     private final TourIndicatorService tourIndicatorService;
+    private static final LocalDate DATA_START_DATE = LocalDate.of(2026, 9, 1);
     private final PriceCalculationService priceCalculationService;
     private final KorService2Client korService2Client;
     private final NotificationService notificationService;
@@ -654,21 +655,17 @@ public class StockService {
         }
 
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = switch (period) {
+        LocalDate requestedStart = switch (period) {
             case "1w" -> endDate.minusWeeks(1);
             case "1m" -> endDate.minusMonths(1);
             case "3m" -> endDate.minusMonths(3);
-            case "all" -> LocalDate.of(2000, 1, 1);
+            case "all" -> DATA_START_DATE;
             default -> endDate.minusWeeks(1);
         };
+        LocalDate startDate = requestedStart.isBefore(DATA_START_DATE) ? DATA_START_DATE : requestedStart;
 
-        List<PriceHistory> histories;
-        if (period.equals("all")) {
-            histories = priceHistoryRepository.findBySpotIdOrderByTradeDateAsc(spotId);
-        } else {
-            histories = priceHistoryRepository.findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(
-                    spotId, startDate, endDate);
-        }
+        List<PriceHistory> histories = priceHistoryRepository.findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(
+                spotId, startDate, endDate);
 
         return histories.stream()
                 .map(ph -> PriceHistoryResponse.builder()
@@ -687,22 +684,18 @@ public class StockService {
         }
 
         LocalDate endDate = LocalDate.now();
-        LocalDate startDate = switch (period.toUpperCase()) {
+        LocalDate requestedStart = switch (period.toUpperCase()) {
             case "1W" -> endDate.minusDays(7);
             case "3M" -> endDate.minusDays(90);
             case "1Y" -> endDate.minusDays(365);
             case "5Y" -> endDate.minusDays(1825);
-            case "ALL" -> LocalDate.of(2000, 1, 1);
+            case "ALL" -> DATA_START_DATE;
             default -> endDate.minusDays(7);
         };
+        LocalDate startDate = requestedStart.isBefore(DATA_START_DATE) ? DATA_START_DATE : requestedStart;
 
-        List<PriceHistory> histories;
-        if (period.toUpperCase().equals("ALL")) {
-            histories = priceHistoryRepository.findBySpotIdOrderByTradeDateAsc(spotId);
-        } else {
-            histories = priceHistoryRepository.findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(
-                    spotId, startDate, endDate);
-        }
+        List<PriceHistory> histories = priceHistoryRepository.findBySpotIdAndTradeDateBetweenOrderByTradeDateAsc(
+                spotId, startDate, endDate);
 
         return histories.stream()
                 .map(ph -> StockChartResponse.builder()
@@ -758,29 +751,20 @@ public class StockService {
         List<PortfolioSummaryResponse.AssetHistoryItem> history = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
-        int days = 7;
+        int days;
         switch (period.toUpperCase()) {
-            case "1W":
-                days = 7;
-                break;
-            case "1M":
-                days = 30;
-                break;
-            case "3M":
-                days = 90;
-                break;
-            case "1Y":
-                days = 365;
-                break;
-            case "ALL":
-                days = 3650;
-                break;
-            default:
-                days = 7;
+            case "1W": days = 7; break;
+            case "1M": days = 30; break;
+            case "3M": days = 90; break;
+            case "1Y": days = 365; break;
+            case "ALL": days = 3650; break;
+            default: days = 7;
         }
 
-        for (int i = days; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
+        LocalDate requestedStart = today.minusDays(days);
+        LocalDate startDate = requestedStart.isBefore(DATA_START_DATE) ? DATA_START_DATE : requestedStart;
+
+        for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
             String formattedDate = String.format("%02d/%02d", date.getMonthValue(), date.getDayOfMonth());
 
             BigDecimal dailyTotalAsset = cashBalance;
