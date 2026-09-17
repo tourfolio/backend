@@ -27,11 +27,15 @@ public class GlobalExceptionHandler {
                 .timestamp(LocalDateTime.now())
                 .build();
 
-        if ("MEMBER_NOT_FOUND".equals(ex.getErrorCode()) || "SPOT_NOT_FOUND".equals(ex.getErrorCode())) {
+        if ("MEMBER_NOT_FOUND".equals(ex.getErrorCode()) || "SPOT_NOT_FOUND".equals(ex.getErrorCode())
+                || "MISSION_NOT_FOUND".equals(ex.getErrorCode()) || "USER_NOT_FOUND".equals(ex.getErrorCode())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
         if ("UNAUTHORIZED_ADMIN".equals(ex.getErrorCode())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+        }
+        if ("MISSION_NOT_CLAIMABLE".equals(ex.getErrorCode())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
         }
         return ResponseEntity.badRequest().body(response);
     }
