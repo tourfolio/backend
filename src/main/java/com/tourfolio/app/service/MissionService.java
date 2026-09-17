@@ -159,15 +159,14 @@ public class MissionService {
                 .build();
     }
 
-    // 프론트가 카드 보유 조건을 판정한 COLLECT 미션의 완료 처리 + 보상 지급
     @Transactional
     public MissionClaimResponse claimCollectMission(Long userId, Long missionId) {
+        Mission mission = missionRepository.findById(missionId)
+                .orElseThrow(() -> new CustomException("MISSION_NOT_FOUND", "존재하지 않는 미션입니다."));
+
         if (!COLLECT_MISSION_IDS.contains(missionId)) {
             throw new CustomException("MISSION_NOT_CLAIMABLE", "프론트 판정으로 완료 처리할 수 없는 미션입니다.");
         }
-
-        Mission mission = missionRepository.findById(missionId)
-                .orElseThrow(() -> new CustomException("MISSION_NOT_FOUND", "존재하지 않는 미션입니다."));
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
