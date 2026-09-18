@@ -726,18 +726,20 @@ public class StockService {
             totalPurchase = totalPurchase.add(purchaseCost);
         }
 
-        BigDecimal totalAsset = user.getBalance().add(totalEvaluation);
+        // "총 평가금액"은 보유 종목(주식)의 평가금액만을 의미한다 (현금 미포함)
+        BigDecimal totalAssetWithCash = user.getBalance().add(totalEvaluation);
         BigDecimal totalProfitLoss = totalEvaluation.subtract(totalPurchase);
         BigDecimal profitRate = BigDecimal.ZERO;
         if (totalPurchase.compareTo(BigDecimal.ZERO) > 0) {
             profitRate = totalProfitLoss.divide(totalPurchase, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
         }
 
-        // 자산 추이 데이터 생성 (기간별 주가 기반 실제 계산)
-        List<PortfolioSummaryResponse.AssetHistoryItem> assetHistory = generateAssetHistory(userId, period, portfolios, user.getBalance());
+        // 자산 추이 데이터 생성 (기간별 주가 기반 실제 계산, 주식 평가금액만 - 헤드라인과 동일 기준)
+        List<PortfolioSummaryResponse.AssetHistoryItem> assetHistory = generateAssetHistory(userId, period, portfolios);
 
         return PortfolioSummaryResponse.builder()
-                .totalAsset(totalAsset)
+                .totalAsset(totalEvaluation)
+                .totalAssetWithCash(totalAssetWithCash)
                 .totalEvaluation(totalEvaluation)
                 .totalPurchase(totalPurchase)
                 .totalProfitLoss(totalProfitLoss)
@@ -747,7 +749,7 @@ public class StockService {
                 .build();
     }
 
-    private List<PortfolioSummaryResponse.AssetHistoryItem> generateAssetHistory(Long userId, String period, List<Portfolio> portfolios, BigDecimal cashBalance) {
+    private List<PortfolioSummaryResponse.AssetHistoryItem> generateAssetHistory(Long userId, String period, List<Portfolio> portfolios) {
         List<PortfolioSummaryResponse.AssetHistoryItem> history = new ArrayList<>();
         LocalDate today = LocalDate.now();
 
@@ -767,24 +769,25 @@ public class StockService {
         for (LocalDate date = startDate; !date.isAfter(today); date = date.plusDays(1)) {
             String formattedDate = String.format("%02d/%02d", date.getMonthValue(), date.getDayOfMonth());
 
-            BigDecimal dailyTotalAsset = cashBalance;
+            // 헤드라인(총 평가금액)과 동일하게 주식 평가금액만 집계 (현금 미포함)
+            BigDecimal dailyStockValue = BigDecimal.ZERO;
             for (Portfolio p : portfolios) {
                 PriceHistory priceHistory = priceHistoryRepository.findBySpotIdAndTradeDate(p.getSpotId(), date);
                 if (priceHistory != null) {
                     BigDecimal stockValue = priceHistory.getPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
-                    dailyTotalAsset = dailyTotalAsset.add(stockValue);
+                    dailyStockValue = dailyStockValue.add(stockValue);
                 } else {
                     Spot spot = spotRepository.findById(p.getSpotId()).orElse(null);
                     if (spot != null) {
                         BigDecimal stockValue = spot.getCurrentPrice().multiply(p.getQuantity()).setScale(2, RoundingMode.HALF_UP);
-                        dailyTotalAsset = dailyTotalAsset.add(stockValue);
+                        dailyStockValue = dailyStockValue.add(stockValue);
                     }
                 }
             }
 
             history.add(PortfolioSummaryResponse.AssetHistoryItem.builder()
                     .date(formattedDate)
-                    .totalAsset(dailyTotalAsset)
+                    .totalAsset(dailyStockValue)
                     .build());
         }
 

@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 public class PortfolioSummaryResponse {
     private BigDecimal totalAsset;        // 총 평가금액 (현금 + 주식)
+    private BigDecimal totalAssetWithCash;
     private BigDecimal totalEvaluation;   // 주식 평가금액
     private BigDecimal totalPurchase;    // 총 매수금액
     private BigDecimal totalProfitLoss;   // 총 평가손익
