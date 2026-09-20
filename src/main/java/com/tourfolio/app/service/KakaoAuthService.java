@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tourfolio.app.dto.KakaoTokenResponse;
 import com.tourfolio.app.dto.KakaoUserInfoResponse;
 import com.tourfolio.app.dto.SocialAuthResponse;
+import com.tourfolio.app.entity.PointHistory;
 import com.tourfolio.app.entity.User;
+import com.tourfolio.app.repository.PointHistoryRepository;
 import com.tourfolio.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,8 @@ public class KakaoAuthService {
 
     private final RestTemplate restTemplate;
     private final UserRepository userRepository;
+    private final PointHistoryRepository pointHistoryRepository;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper;
 
     @Value("${kakao.client-id}")
@@ -141,7 +145,7 @@ public class KakaoAuthService {
     }
 
     /**
-     * 카카오 회원 생성
+     * 카카오 회원 생성 (이메일 가입과 동일한 정책: 30,000P + 포인트내역 + 알림)
      */
     private User createKakaoMember(KakaoUserInfoResponse userInfo) {
         String email = userInfo.getKakaoAccount().getEmail();
@@ -153,19 +157,34 @@ public class KakaoAuthService {
             nickname = nickname + "_" + UUID.randomUUID().toString().substring(0, 8);
         }
 
+        BigDecimal signupBonus = new BigDecimal("30000");
+
         User user = User.builder()
                 .email(email)
                 .password("") // 소셜 로그인은 비밀번호 불필요
                 .nickname(nickname)
                 .active(true)
-                .balance(new BigDecimal("50000")) // 회원가입 축하 포인트
+                .balance(signupBonus)
                 .provider("KAKAO")
                 .providerId(providerId)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        pointHistoryRepository.save(PointHistory.builder()
+                .userId(savedUser.getId())
+                .type("SIGNUP")
+                .title("회원가입 축하 포인트")
+                .amount(signupBonus.longValue())
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        notificationService.notify(savedUser.getId(), "SIGNUP_BONUS",
+                "회원가입 축하 포인트로 " + signupBonus.longValue() + "P가 지급되었습니다");
+
+        return savedUser;
     }
 
     /**
