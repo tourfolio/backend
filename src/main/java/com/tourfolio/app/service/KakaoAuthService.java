@@ -1,6 +1,5 @@
 package com.tourfolio.app.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tourfolio.app.dto.KakaoTokenResponse;
 import com.tourfolio.app.dto.KakaoUserInfoResponse;
 import com.tourfolio.app.dto.SocialAuthResponse;
@@ -31,7 +30,6 @@ public class KakaoAuthService {
     private final UserRepository userRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final NotificationService notificationService;
-    private final ObjectMapper objectMapper;
 
     @Value("${kakao.client-id}")
     private String clientId;
@@ -43,57 +41,70 @@ public class KakaoAuthService {
     private static final String KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me";
 
     /**
-     * 카카오 소셜 로그인 처리
-     * @param code 카카오 인가 코드
-     * @return 소셜 로그인 응답
+     * [웹 리다이렉트 방식] 카카오 인가 코드로 로그인 처리 (GET /kakao/callback 전용)
+     * 서버가 code→토큰 교환을 직접 수행하므로 redirect_uri가 정확히 일치해야 한다.
      */
     @Transactional
     public SocialAuthResponse kakaoLogin(String code) {
-        log.info("카카오 소셜 로그인 시작: code={}", code);
-
+        log.info("카카오 소셜 로그인 시작 (인가 코드 방식): code={}", code);
         try {
-            // 1. 액세스 토큰 요청
             KakaoTokenResponse tokenResponse = getKakaoAccessToken(code);
             log.info("카카오 액세스 토큰 발급 성공");
-
-            // 2. 사용자 정보 조회
-            KakaoUserInfoResponse userInfo = getKakaoUserInfo(tokenResponse.getAccessToken());
-            log.info("카카오 사용자 정보 조회 성공: id={}, email={}", userInfo.getId(), userInfo.getKakaoAccount().getEmail());
-
-            // 3. 기존 회원 확인
-            String providerId = String.valueOf(userInfo.getId());
-            User user = userRepository.findByProviderAndProviderId("KAKAO", providerId)
-                    .orElse(null);
-
-            boolean isNewMember = false;
-
-            // 4. 신규 회원인 경우 자동 가입
-            if (user == null) {
-                user = createKakaoMember(userInfo);
-                isNewMember = true;
-                log.info("카카오 신규 회원 가입 완료: userId={}, email={}", user.getId(), user.getEmail());
-            } else {
-                log.info("카카오 기존 회원 로그인: userId={}, email={}", user.getId(), user.getEmail());
-            }
-
-            // 5. 응답 생성
-            return SocialAuthResponse.builder()
-                    .id(user.getId())
-                    .email(user.getEmail())
-                    .nickname(user.getNickname())
-                    .token(generateToken(user))
-                    .isNewMember(isNewMember)
-                    .createdAt(user.getCreatedAt())
-                    .build();
-
+            return processKakaoUser(tokenResponse.getAccessToken());
         } catch (Exception e) {
-            log.error("카카오 소셜 로그인 실패", e);
+            log.error("카카오 소셜 로그인 실패 (인가 코드 방식)", e);
             throw new RuntimeException("카카오 소셜 로그인 실패: " + e.getMessage());
         }
     }
 
     /**
-     * 카카오 액세스 토큰 발급
+     * [네이티브 SDK 방식] 프론트가 카카오 SDK로 이미 발급받은 액세스 토큰으로 로그인 처리 (POST /kakao 전용)
+     * 코드→토큰 교환 단계가 없으므로 redirect_uri 검증과 무관하다.
+     */
+    @Transactional
+    public SocialAuthResponse kakaoLoginWithAccessToken(String accessToken) {
+        log.info("카카오 소셜 로그인 시작 (네이티브 액세스 토큰 방식)");
+        try {
+            return processKakaoUser(accessToken);
+        } catch (Exception e) {
+            log.error("카카오 소셜 로그인 실패 (네이티브 액세스 토큰 방식)", e);
+            throw new RuntimeException("카카오 소셜 로그인 실패: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 카카오 액세스 토큰을 받은 이후의 공통 처리 (사용자 조회/가입/토큰 발급)
+     */
+    private SocialAuthResponse processKakaoUser(String kakaoAccessToken) {
+        KakaoUserInfoResponse userInfo = getKakaoUserInfo(kakaoAccessToken);
+        log.info("카카오 사용자 정보 조회 성공: id={}, email={}", userInfo.getId(), userInfo.getKakaoAccount().getEmail());
+
+        String providerId = String.valueOf(userInfo.getId());
+        User user = userRepository.findByProviderAndProviderId("KAKAO", providerId)
+                .orElse(null);
+
+        boolean isNewMember = false;
+
+        if (user == null) {
+            user = createKakaoMember(userInfo);
+            isNewMember = true;
+            log.info("카카오 신규 회원 가입 완료: userId={}, email={}", user.getId(), user.getEmail());
+        } else {
+            log.info("카카오 기존 회원 로그인: userId={}, email={}", user.getId(), user.getEmail());
+        }
+
+        return SocialAuthResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .token(generateToken(user))
+                .isNewMember(isNewMember)
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * 카카오 액세스 토큰 발급 (웹 리다이렉트 방식 전용)
      */
     private KakaoTokenResponse getKakaoAccessToken(String code) {
         HttpHeaders headers = new HttpHeaders();
@@ -121,7 +132,7 @@ public class KakaoAuthService {
     }
 
     /**
-     * 카카오 사용자 정보 조회
+     * 카카오 사용자 정보 조회 (공통)
      */
     private KakaoUserInfoResponse getKakaoUserInfo(String accessToken) {
         HttpHeaders headers = new HttpHeaders();
@@ -152,7 +163,6 @@ public class KakaoAuthService {
         String nickname = userInfo.getKakaoAccount().getProfile().getNickname();
         String providerId = String.valueOf(userInfo.getId());
 
-        // 닉네임 중복 확인
         if (userRepository.existsByNickname(nickname)) {
             nickname = nickname + "_" + UUID.randomUUID().toString().substring(0, 8);
         }
@@ -161,7 +171,7 @@ public class KakaoAuthService {
 
         User user = User.builder()
                 .email(email)
-                .password("") // 소셜 로그인은 비밀번호 불필요
+                .password("")
                 .nickname(nickname)
                 .active(true)
                 .balance(signupBonus)
@@ -187,9 +197,6 @@ public class KakaoAuthService {
         return savedUser;
     }
 
-    /**
-     * 토큰 생성
-     */
     private String generateToken(User user) {
         return "TOKEN_" + UUID.randomUUID().toString().replace("-", "") + "_" + user.getId();
     }

@@ -14,20 +14,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Slf4j
-@Tag(name = "인증 (Authentication)", description = "회원가입 및 로그인 API")
+@Tag(name = "인증 (Auth)", description = "회원가입, 로그인, 소셜 로그인 API")
 public class AuthController {
 
     private final UserService userService;
@@ -43,15 +37,14 @@ public class AuthController {
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
         log.info("회원가입 요청: email={}", request.getEmail());
         AuthResponse response = userService.signup(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "로그인 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 요청 데이터"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "로그인 정보 불일치")
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         log.info("로그인 요청: email={}", request.getEmail());
@@ -60,15 +53,15 @@ public class AuthController {
     }
 
     @PostMapping("/kakao")
-    @Operation(summary = "카카오 소셜 로그인", description = "카카오 인가 코드를 사용하여 소셜 로그인을 수행합니다.")
+    @Operation(summary = "카카오 소셜 로그인", description = "네이티브 카카오 SDK로 발급받은 액세스 토큰을 사용하여 소셜 로그인을 수행합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "소셜 로그인 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 인가 코드"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 액세스 토큰"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "카카오 API 호출 실패")
     })
     public ResponseEntity<SocialAuthResponse> kakaoLogin(@Valid @RequestBody KakaoAuthRequest request) {
-        log.info("카카오 소셜 로그인 요청: code={}", request.getCode());
-        SocialAuthResponse response = kakaoAuthService.kakaoLogin(request.getCode());
+        log.info("카카오 소셜 로그인 요청 (네이티브 액세스 토큰)");
+        SocialAuthResponse response = kakaoAuthService.kakaoLoginWithAccessToken(request.getAccessToken());
         return ResponseEntity.ok(response);
     }
 
