@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -141,30 +142,41 @@ public class ExploreService {
                 .build();
     }
 
-    // 신규: 풀스크린 메인 카드 조회 (Editor's Pick)
+    // 신규: 풀스크린 메인 카드 조회 (Editor's Pick) - 이미지 편집 가능한 타입1 관광지 3곳으로 고정
+    private static final List<String> MAIN_CARD_SPOT_NAMES = List.of(
+            "경주 대릉원 일원", "광안리해수욕장", "창덕궁과 후원 [유네스코 세계유산]"
+    );
+
     public List<MainCardResponse> getMainCards() {
-        log.info("풀스크린 메인 카드 조회 시작");
-        List<Spot> spots = spotRepository.findMainCards();
-        List<MainCardResponse> responses = spots.stream()
-                .limit(6) // Editor's Pick 최대 6개
-                .map((spot) -> {
-                    int index = spots.indexOf(spot) + 1;
-                    return MainCardResponse.builder()
-                            .spotId(spot.getId())
-                            .name(spot.getName())
-                            .subTitle(generateSubTitle(spot))
-                            .description(spot.getDescription())
-                            .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
-                            .address(spot.getAddress() != null ? spot.getAddress() : "")
-                            .imageUrl(getImageUrlWithFallback(spot))
-                            .hasImage(hasRealImage(spot))
-                            .theme(spot.getTheme() != null ? spot.getTheme() : "")
-                            .tags(parseTags(spot.getThemeTag()))
-                            .totalCount(Math.min(spots.size(), 6))
-                            .currentIndex(index)
-                            .build();
-                })
+        log.info("풀스크린 메인 카드 조회 시작 (고정 3곳)");
+
+        List<Spot> spots = MAIN_CARD_SPOT_NAMES.stream()
+                .map(name -> spotRepository.findAll().stream()
+                        .filter(s -> s.getName().equals(name))
+                        .findFirst()
+                        .orElse(null))
+                .filter(java.util.Objects::nonNull)
                 .collect(Collectors.toList());
+
+        List<MainCardResponse> responses = new ArrayList<>();
+        for (int i = 0; i < spots.size(); i++) {
+            Spot spot = spots.get(i);
+            responses.add(MainCardResponse.builder()
+                    .spotId(spot.getId())
+                    .name(spot.getName())
+                    .subTitle(generateSubTitle(spot))
+                    .description(spot.getDescription())
+                    .location(spot.getAreaName() != null ? spot.getAreaName() : spot.getRegion())
+                    .address(spot.getAddress() != null ? spot.getAddress() : "")
+                    .imageUrl(getImageUrlWithFallback(spot))
+                    .hasImage(hasRealImage(spot))
+                    .theme(spot.getTheme() != null ? spot.getTheme() : "")
+                    .tags(parseTags(spot.getThemeTag()))
+                    .totalCount(spots.size())
+                    .currentIndex(i + 1)
+                    .build());
+        }
+
         log.info("풀스크린 메인 카드 조회 완료: {}건", responses.size());
         return responses;
     }
