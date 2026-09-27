@@ -53,15 +53,15 @@ public class AuthController {
     }
 
     @PostMapping("/kakao")
-    @Operation(summary = "카카오 소셜 로그인", description = "네이티브 카카오 SDK로 발급받은 액세스 토큰을 사용하여 소셜 로그인을 수행합니다.")
+    @Operation(summary = "카카오 소셜 로그인", description = "카카오 인가 코드를 사용하여 소셜 로그인을 수행합니다.")
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "소셜 로그인 성공"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 액세스 토큰"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 인가 코드"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "카카오 API 호출 실패")
     })
     public ResponseEntity<SocialAuthResponse> kakaoLogin(@Valid @RequestBody KakaoAuthRequest request) {
-        log.info("카카오 소셜 로그인 요청 (네이티브 액세스 토큰)");
-        SocialAuthResponse response = kakaoAuthService.kakaoLoginWithAccessToken(request.getAccessToken());
+        log.info("카카오 소셜 로그인 요청 (인가 코드): code={}", request.getCode());
+        SocialAuthResponse response = kakaoAuthService.kakaoLogin(request.getCode());
         return ResponseEntity.ok(response);
     }
 
