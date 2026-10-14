@@ -25,7 +25,7 @@ public class MissionController {
     private final MissionService missionService;
 
     @GetMapping
-    @Operation(summary = "업적 메인 화면 조회", description = "보유 포인트, 이번주 출석, 진행중/완료 미션 목록을 조회합니다. 조회만으로는 포인트가 지급되지 않습니다. (토큰 필요)")
+    @Operation(summary = "업적 메인 화면 조회", description = "보유 포인트, 이번주 출석, 진행중/완료 미션 목록을 조회합니다. (토큰 필요)")
     public ResponseEntity<MissionListResponse> getMissions() {
         Long userId = SecurityUtil.getCurrentUserId();
         log.info("GET /api/v1/missions - 업적 메인 화면 조회: userId={}", userId);
@@ -33,10 +33,10 @@ public class MissionController {
     }
 
     @PostMapping("/{missionId}/claim")
-    @Operation(summary = "미션 보상 수령", description = "달성한 미션의 완료 처리와 포인트 지급을 요청합니다. 이미 수령한 경우 alreadyRewarded=true, pointsAwarded=0으로 응답합니다. (토큰 필요)")
-    public ResponseEntity<MissionClaimResponse> claimMission(@PathVariable Long missionId) {
+    @Operation(summary = "수집 미션 보상 수령", description = "프론트에서 카드 보유 조건 충족을 판정한 COLLECT 미션의 완료 처리 및 포인트 지급을 요청합니다. (토큰 필요)")
+    public ResponseEntity<MissionClaimResponse> claimCollectMission(@PathVariable Long missionId) {
         Long userId = SecurityUtil.getCurrentUserId();
-        log.info("POST /api/v1/missions/{}/claim - 미션 보상 수령 요청: userId={}", missionId, userId);
-        return ResponseEntity.ok(missionService.claimMission(userId, missionId));
+        log.info("POST /api/v1/missions/{}/claim - 수집 미션 보상 수령 요청: userId={}", missionId, userId);
+        return ResponseEntity.ok(missionService.claimCollectMission(userId, missionId));
     }
 }
