@@ -17,7 +17,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -28,16 +27,20 @@ public class MissionService {
     private final MissionRepository missionRepository;
     private final UserMissionRepository userMissionRepository;
     private final UserRepository userRepository;
-    private final UserCardRepository userCardRepository;
     private final PortfolioRepository portfolioRepository;
     private final TransactionRepository transactionRepository;
     private final PointHistoryRepository pointHistoryRepository;
     private final AttendanceService attendanceService;
     private final NotificationService notificationService;
 
-    // 프론트 판정으로 완료 처리 가능한 COLLECT 미션만 허용 (첫 발도장 / 길 위의 사람 / 대한민국 정복)
-    private static final Set<Long> COLLECT_MISSION_IDS = Set.of(1L, 2L, 3L);
+    // 수집 미션: 카드 보유 판정은 프론트가 하고, 서버는 claim 호출만 믿고 처리한다
+    private static final String COLLECT_CONDITION_TYPE = "CARD_COUNT";
 
+    /**
+     * 업적 화면 조회. 진행도만 계산하며 포인트 지급/완료 처리/알림은 하지 않는다.
+     * isCompleted = 보상을 수령(claim)한 상태
+     * 수령 가능 여부는 currentProgress >= conditionTarget && !isCompleted 로 판단한다.
+     */
     @Transactional
     public MissionListResponse getMissions(Long userId) {
         User user = userRepository.findById(userId)
@@ -45,7 +48,6 @@ public class MissionService {
 
         List<Mission> allMissions = missionRepository.findAll();
 
-        // 진행률 계산에 필요한 값들 미리 조회 (CARD_COUNT는 이제 프론트 판정 + claim API로만 완료 처리)
         boolean hasFirstBuy = transactionRepository.findByMemberIdOrderByExecutedAtDesc(userId).stream()
                 .anyMatch(t -> "BUY".equals(t.getType()));
 
@@ -73,64 +75,33 @@ public class MissionService {
                             .createdAt(LocalDateTime.now())
                             .build());
 
-            boolean isCollectMission = "CARD_COUNT".equals(mission.getConditionType());
+            boolean claimed = Boolean.TRUE.equals(um.getIsCompleted());
+            int target = mission.getConditionTarget();
+            int progress;
 
-            if (isCollectMission) {
-                // COLLECT 미션: 완료 여부는 서버(claim API로만 갱신)가 갖고 있는 값을 그대로 사용.
-                // 미완료 상태의 진행도는 프론트에서 계산하므로 서버는 항상 0으로 내려준다.
-                if (!Boolean.TRUE.equals(um.getIsCompleted())) {
-                    um.setCurrentProgress(0);
-                }
-                userMissionRepository.save(um);
-
-                if (Boolean.TRUE.equals(um.getIsCompleted())) completed++;
-                else inProgress++;
-
-                responses.add(MissionResponse.builder()
-                        .missionId(mission.getId())
-                        .category(mission.getCategory())
-                        .title(mission.getTitle())
-                        .rewardPoints(mission.getRewardPoints())
-                        .currentProgress(um.getCurrentProgress())
-                        .conditionTarget(mission.getConditionTarget())
-                        .isCompleted(um.getIsCompleted())
-                        .build());
-                continue;
+            if (claimed) {
+                progress = target;
+            } else if (COLLECT_CONDITION_TYPE.equals(mission.getConditionType())) {
+                // 수집 미션의 미완료 진행도는 프론트가 계산하므로 서버는 0
+                progress = 0;
+            } else {
+                int live = switch (mission.getConditionType()) {
+                    case "FIRST_BUY" -> hasFirstBuy ? 1 : 0;
+                    case "STOCK_QTY_SINGLE" -> maxSingleQty;
+                    case "STOCK_QTY_DISTINCT" -> distinctStockCount;
+                    case "CONSECUTIVE_DAYS" -> consecutiveDays;
+                    case "CUMULATIVE_DAYS" -> cumulativeDays;
+                    default -> 0;
+                };
+                int stored = um.getCurrentProgress() != null ? um.getCurrentProgress() : 0;
+                // 한 번 달성한 진행도는 유지 (출석이 끊기거나 주식을 팔아도 수령 가능 상태가 사라지지 않게)
+                progress = Math.min(Math.max(stored, live), target);
             }
 
-            int progress = switch (mission.getConditionType()) {
-                case "FIRST_BUY" -> hasFirstBuy ? 1 : 0;
-                case "STOCK_QTY_SINGLE" -> maxSingleQty;
-                case "STOCK_QTY_DISTINCT" -> distinctStockCount;
-                case "CONSECUTIVE_DAYS" -> consecutiveDays;
-                case "CUMULATIVE_DAYS" -> cumulativeDays;
-                default -> 0;
-            };
-            progress = Math.min(progress, mission.getConditionTarget());
             um.setCurrentProgress(progress);
-
-            boolean justCompleted = !Boolean.TRUE.equals(um.getIsCompleted()) && progress >= mission.getConditionTarget();
-            if (justCompleted) {
-                um.setIsCompleted(true);
-                um.setCompletedAt(LocalDateTime.now());
-
-                user.setBalance(user.getBalance().add(BigDecimal.valueOf(mission.getRewardPoints())));
-                pointHistoryRepository.save(PointHistory.builder()
-                        .userId(userId)
-                        .type("MISSION")
-                        .title(mission.getTitle() + " 미션 달성")
-                        .amount((long) mission.getRewardPoints())
-                        .createdAt(LocalDateTime.now())
-                        .build());
-
-                notificationService.notify(userId, "MISSION_COMPLETE",
-                        mission.getTitle() + " 미션을 달성하여 " + mission.getRewardPoints() + "P를 획득했습니다!");
-
-                log.info("미션 달성: userId={}, mission={}, +{}P", userId, mission.getTitle(), mission.getRewardPoints());
-            }
             userMissionRepository.save(um);
 
-            if (Boolean.TRUE.equals(um.getIsCompleted())) completed++;
+            if (claimed) completed++;
             else inProgress++;
 
             responses.add(MissionResponse.builder()
@@ -138,13 +109,11 @@ public class MissionService {
                     .category(mission.getCategory())
                     .title(mission.getTitle())
                     .rewardPoints(mission.getRewardPoints())
-                    .currentProgress(um.getCurrentProgress())
-                    .conditionTarget(mission.getConditionTarget())
-                    .isCompleted(um.getIsCompleted())
+                    .currentProgress(progress)
+                    .conditionTarget(target)
+                    .isCompleted(claimed)
                     .build());
         }
-
-        userRepository.save(user);
 
         List<String> weekly = attendanceService.calculateWeeklyAttendance(userId);
         boolean attendedToday = "ATTENDED".equals(weekly.get(LocalDate.now().getDayOfWeek().getValue() - 1));
@@ -159,20 +128,21 @@ public class MissionService {
                 .build();
     }
 
+    /**
+     * 미션 보상 수령 (모든 미션 공통). 완료 처리 + 포인트 지급 + MISSION_COMPLETE 알림을 한 트랜잭션으로 처리한다.
+     * 동시 요청/재요청이 와도 보상은 한 번만 지급된다.
+     */
     @Transactional
-    public MissionClaimResponse claimCollectMission(Long userId, Long missionId) {
+    public MissionClaimResponse claimMission(Long userId, Long missionId) {
         Mission mission = missionRepository.findById(missionId)
                 .orElseThrow(() -> new CustomException("MISSION_NOT_FOUND", "존재하지 않는 미션입니다."));
-
-        if (!COLLECT_MISSION_IDS.contains(missionId)) {
-            throw new CustomException("MISSION_NOT_CLAIMABLE", "프론트 판정으로 완료 처리할 수 없는 미션입니다.");
-        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException("USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
 
-        // 이미 완료된 상태인지 먼저 확인 (재요청 케이스)
         UserMission existing = userMissionRepository.findByUserIdAndMissionId(userId, missionId).orElse(null);
+
+        // 이미 수령한 경우 (재요청)
         if (existing != null && Boolean.TRUE.equals(existing.getIsCompleted())) {
             return MissionClaimResponse.builder()
                     .missionId(missionId)
@@ -183,7 +153,15 @@ public class MissionService {
                     .build();
         }
 
-        // 레코드가 아예 없으면 먼저 생성 (완료 전 상태로)
+        // 수집 미션 외에는 서버가 달성 여부를 직접 검증
+        if (!COLLECT_CONDITION_TYPE.equals(mission.getConditionType())) {
+            int stored = (existing != null && existing.getCurrentProgress() != null) ? existing.getCurrentProgress() : 0;
+            int live = calculateLiveProgress(mission.getConditionType(), userId);
+            if (Math.max(stored, live) < mission.getConditionTarget()) {
+                throw new CustomException("MISSION_NOT_ACHIEVED", "아직 달성하지 못한 미션입니다.");
+            }
+        }
+
         if (existing == null) {
             userMissionRepository.save(UserMission.builder()
                     .userId(userId)
@@ -198,7 +176,6 @@ public class MissionService {
         int updated = userMissionRepository.markCompletedIfNotAlready(userId, missionId, mission.getConditionTarget());
 
         if (updated == 0) {
-            // 방금 사이에 다른 요청이 먼저 완료 처리한 경우
             User refreshed = userRepository.findById(userId).orElseThrow();
             return MissionClaimResponse.builder()
                     .missionId(missionId)
@@ -224,7 +201,7 @@ public class MissionService {
         notificationService.notify(userId, "MISSION_COMPLETE",
                 mission.getTitle() + " 미션을 달성하여 " + mission.getRewardPoints() + "P를 획득했습니다!");
 
-        log.info("수집 미션 보상 지급: userId={}, missionId={}, +{}P", userId, missionId, mission.getRewardPoints());
+        log.info("미션 보상 수령: userId={}, missionId={}, +{}P", userId, missionId, mission.getRewardPoints());
 
         return MissionClaimResponse.builder()
                 .missionId(missionId)
@@ -233,5 +210,22 @@ public class MissionService {
                 .pointsAwarded(mission.getRewardPoints())
                 .balance(user.getBalance())
                 .build();
+    }
+
+    // claim 시점의 실시간 진행도 계산 (수집 미션 제외)
+    private int calculateLiveProgress(String conditionType, Long userId) {
+        return switch (conditionType) {
+            case "FIRST_BUY" -> transactionRepository.findByMemberIdOrderByExecutedAtDesc(userId).stream()
+                    .anyMatch(t -> "BUY".equals(t.getType())) ? 1 : 0;
+            case "STOCK_QTY_SINGLE" -> portfolioRepository.findByMemberId(userId).stream()
+                    .mapToInt(p -> p.getQuantity().intValue())
+                    .max().orElse(0);
+            case "STOCK_QTY_DISTINCT" -> (int) portfolioRepository.findByMemberId(userId).stream()
+                    .filter(p -> p.getQuantity().compareTo(BigDecimal.ZERO) > 0)
+                    .count();
+            case "CONSECUTIVE_DAYS" -> attendanceService.calculateConsecutiveDays(userId);
+            case "CUMULATIVE_DAYS" -> attendanceService.getTotalAttendanceCount(userId);
+            default -> 0;
+        };
     }
 }
